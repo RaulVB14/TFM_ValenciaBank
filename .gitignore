@@ -1,0 +1,20 @@
+﻿# Node / React
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+frontend/.vite
+frontend/.eslintcache
+
+# Java / Spring
+backend/target/
+backend/.idea/
+backend/.classpath
+backend/.project
+backend/.settings/
+backend/.mvn/
+backend/mvnw*
+backend/src/main/resources/application.properties
+
+# Sistema
+*.log
+.DS_Store
