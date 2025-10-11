@@ -18,3 +18,5 @@ backend/src/main/resources/application.properties
 # Sistema
 *.log
 .DS_Store
+
+*.zip
