@@ -36,15 +36,23 @@ function Profile() {
   }, []);
 
   return (
-    <div className="buttons-container">
-      <h2>VALENCIA BANK</h2>
-      
-      {userData ? (
-        <BalanceComponent 
-          balance={userData.account.balance} 
-          account={userData.account.number}/>) : (<p>Cargando datos...</p>)}
+    <div className="profile-page">
+      <h2 className="profile-title">VALENCIA BANK</h2>
 
-      <button className="btn" onClick={Exit}>Salir</button>
+      {userData ? (
+        <div className="profile-card">
+          <BalanceComponent 
+            balance={userData.account.balance} 
+            account={userData.account.number}
+          />
+
+          <div className="actions">
+            <button className="btn exit-btn" onClick={Exit}>Salir</button>
+          </div>
+        </div>
+      ) : (
+        <p className="loading">Cargando datos...</p>
+      )}
     </div>
   );
 }

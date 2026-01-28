@@ -30,17 +30,21 @@ function Summary() {
 
     console.log('Cargando filtros previos:', savedMinAmount, savedMaxAmount, savedStartDate, savedEndDate);
 
-    const convertDateFormat = (dateStr) => {
-      return dateStr.replace(/-/g, '/');
-    };
-
     fetchTransactionData();
   }, []); // Solo se ejecuta una vez al cargar el componente
 
 
   const resetFilters = () => {
-    setFilteredData([]);
-    setFilters({});
+    // Restaurar a todas las transacciones y limpiar los inputs de filtro
+    setFilteredData(transactionData || []);
+    setMinAmount("");
+    setMaxAmount("");
+    setStartDate("");
+    setEndDate("");
+    localStorage.removeItem('minAmount');
+    localStorage.removeItem('maxAmount');
+    localStorage.removeItem('startDate');
+    localStorage.removeItem('endDate');
   };
 
   const Reset = () => {
@@ -60,15 +64,35 @@ function Summary() {
       const response = await axios.get(`http://localhost:8080/user/get/${dni}`);
 
       const transactions = response.data.transactions;
+  console.debug('fetchTransactionData: received transactions sample', transactions && transactions.length, transactions && transactions.slice(0,3));
 
-      // Formatear las fechas a un formato más sencillo de comparar
-      const formattedTransactions = transactions.map(transaction => ({
-        ...transaction,
-        date: new Date(transaction.date).toLocaleDateString(), // Fecha en formato dd/mm/yyyy
-      }));
+      // Mantener fecha original en ISO para comparaciones y añadir una versión para mostrar
+      const formattedTransactions = transactions.map(transaction => {
+        const rawDate = transaction.date || transaction.dateISO || transaction.fecha || transaction.createdAt || transaction.timestamp;
+        let dateISO = rawDate;
+        // if timestamp is numeric, convert to ISO
+        if (typeof rawDate === 'number') {
+          dateISO = new Date(rawDate).toISOString();
+        }
+        let displayDate = 'N/A';
+        try {
+          const d = new Date(dateISO);
+          displayDate = isNaN(d.getTime()) ? 'N/A' : d.toLocaleDateString();
+        } catch (e) {
+          displayDate = 'N/A';
+        }
+
+        return {
+          ...transaction,
+          dateISO,
+          date: displayDate,
+        };
+      });
 
       setTransactionData(formattedTransactions);
-      setFilteredData(formattedTransactions); // Inicialmente se muestran todas las transacciones
+      // Aplicar filtros actuales (si hay) sobre los datos recién obtenidos
+      const filteredOnFetch = getFiltered(formattedTransactions);
+      setFilteredData(filteredOnFetch);
     } catch (error) {
       console.error('Error al obtener los datos de la transacción', error);
       alert('Hubo un problema al obtener los datos de la transacción');
@@ -76,52 +100,72 @@ function Summary() {
   };
 
   const handleFilter = () => {
-    if (!transactionData) return;
-
-    let filteredTransactions = [...transactionData]; // Copia de las transacciones
-
-    // Filtro por monto mínimo
-    if (minAmount !== "") {
-      filteredTransactions = filteredTransactions.filter(transaction => transaction.amount >= parseFloat(minAmount));
-    }
-
-    // Filtro por monto máximo
-    if (maxAmount !== "") {
-      filteredTransactions = filteredTransactions.filter(transaction => transaction.amount <= parseFloat(maxAmount));
-    }
-
-    // Filtro por fecha desde
-    if (startDate !== "") {
-      filteredTransactions = filteredTransactions.filter(transaction => {
-        const transactionDate = new Date(transaction.date);
-        const filterStartDate = new Date(startDate);
-        return transactionDate >= filterStartDate;
-      });
-    }
-
-    // Filtro por fecha hasta
-    if (endDate !== "") {
-      filteredTransactions = filteredTransactions.filter(transaction => {
-        const transactionDate = new Date(transaction.date);
-        const filterEndDate = new Date(endDate);
-        return transactionDate <= filterEndDate;
-      });
-    }
-
-    setFilteredData(filteredTransactions); // Actualiza las transacciones filtradas
-
     // Guardar los filtros en localStorage
     localStorage.setItem('minAmount', minAmount);
     localStorage.setItem('maxAmount', maxAmount);
     localStorage.setItem('startDate', startDate);
     localStorage.setItem('endDate', endDate);
+
+    // Si ya hay datos cargados, aplicar filtros sobre ellos
+    if (transactionData) {
+      const filtered = getFiltered(transactionData);
+      setFilteredData(filtered);
+    } else {
+      // Si no hay datos aún, dejamos que fetchTransactionData aplique los filtros cuando obtenga los datos
+      setFilteredData([]);
+    }
+  };
+
+  // Función auxiliar que aplica los filtros sobre un array de transacciones
+  const getFiltered = (transactionsArray) => {
+    if (!transactionsArray) return [];
+    let result = [...transactionsArray];
+    console.debug('getFiltered: initial count', result.length);
+
+    if (minAmount !== "") {
+      const min = parseFloat(minAmount);
+      result = result.filter(t => {
+        const amt = parseFloat(t.amount ?? t.monto ?? t.value ?? 0);
+        return !isNaN(amt) && amt >= min;
+      });
+      console.debug('after minAmount filter', result.length);
+    }
+    if (maxAmount !== "") {
+      const max = parseFloat(maxAmount);
+      result = result.filter(t => {
+        const amt = parseFloat(t.amount ?? t.monto ?? t.value ?? 0);
+        return !isNaN(amt) && amt <= max;
+      });
+      console.debug('after maxAmount filter', result.length);
+    }
+    if (startDate !== "") {
+      const filterStartDate = new Date(startDate);
+      result = result.filter(t => {
+        const td = new Date(t.dateISO);
+        if (isNaN(td.getTime())) return false; // no date -> exclude
+        return td >= filterStartDate;
+      });
+      console.debug('after startDate filter', result.length);
+    }
+    if (endDate !== "") {
+      const filterEndDate = new Date(endDate);
+      filterEndDate.setHours(23,59,59,999);
+      result = result.filter(t => {
+        const td = new Date(t.dateISO);
+        if (isNaN(td.getTime())) return false;
+        return td <= filterEndDate;
+      });
+      console.debug('after endDate filter', result.length);
+    }
+
+    return result;
   };
 
 
 
   return (
     <div className="summary-container">
-      <h2>VALENCIA BANK</h2>
+      <h2 className="profile-title">VALENCIA BANK</h2>
 
       {/* Filtros */}
       <div className="filters">
@@ -151,7 +195,10 @@ function Summary() {
           value={endDate}
           onChange={(e) => setEndDate(e.target.value)}
         />
-        <button onClick={handleFilter}>Aplicar Filtros</button>
+        <div className="filters-actions">
+          <button className="btn" onClick={handleFilter}>Aplicar Filtros</button>
+          <button className="btn" onClick={resetFilters}>Restablecer</button>
+        </div>
       </div>
 
       {/* Mostrar transacciones filtradas */}
@@ -175,7 +222,6 @@ function Summary() {
         ) : (
           <p>No se ha cargado ninguna información de la transacción.</p>
         )}
-        <button className="btn" onClick={fetchTransactionData}>Obtener Información</button>
         <button className="btn" onClick={Exit}>Salir</button>
       </div>
     </div>

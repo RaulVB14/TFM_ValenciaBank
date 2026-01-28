@@ -83,14 +83,15 @@ function Transfer() {
   };
 
   return (
-    <div className="buttons-container">
-      <h2>VALENCIA BANK</h2>
+    <div className="transfer-page">
+      <h2 className="profile-title">VALENCIA BANK</h2>
       {userData ? (
-        <>
+        <div className="transfer-card">
           <div className="transfer-inputs">
             <label>
               Monto a transferir:
               <input 
+                className="input-amount"
                 type="number" 
                 value={amount} 
                 onChange={(e) => setAmount(e.target.value)} 
@@ -100,6 +101,7 @@ function Transfer() {
             <label>
               Cuenta de destino:
               <input 
+                className="input-account"
                 type="text" 
                 value={destinationAccount} 
                 onChange={(e) => setDestinationAccount(e.target.value)} 
@@ -107,12 +109,15 @@ function Transfer() {
               />
             </label>
           </div>
-          <button className="btn" onClick={handleTransfer}>Realizar Transferencia</button>
-        </>
+
+          <div className="actions">
+            <button className="btn action-btn" onClick={handleTransfer}>Realizar Transferencia</button>
+            <button className="btn exit-btn" onClick={Exit}>Salir</button>
+          </div>
+        </div>
       ) : (
-        <p>Cargando datos...</p>
+        <p className="loading">Cargando datos...</p>
       )}
-      <button className="btn" onClick={Exit}>Salir</button>
     </div>
   );
 }

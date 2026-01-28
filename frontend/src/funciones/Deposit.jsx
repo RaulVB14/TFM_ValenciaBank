@@ -88,10 +88,10 @@ function Deposit() {
   }
 
   return (
-    <div className="buttons-container">
-      <h2>VALENCIA BANK</h2>
+    <div className="deposit-page">
+      <h2 className="profile-title">VALENCIA BANK</h2>
       {userData ? (
-        <>
+        <div className="deposit-card">
           <div className="transfer-inputs">
             <label>
               Monto a ingresar:
@@ -103,12 +103,15 @@ function Deposit() {
               />
             </label>
           </div>
-          <button className="btn" onClick={handleDeposit}>Realizar Ingreso</button>
-        </>
+
+          <div className="actions">
+            <button className="btn action-btn" onClick={handleDeposit}>Realizar Ingreso</button>
+            <button className="btn exit-btn" onClick={Exit}>Salir</button>
+          </div>
+        </div>
       ) : (
-        <p>Cargando datos...</p>
+        <p className="loading">Cargando datos...</p>
       )}
-      <button className="btn" onClick={Exit}>Salir</button>
     </div>
   );
 }

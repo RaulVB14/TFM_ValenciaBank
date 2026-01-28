@@ -119,7 +119,7 @@ function Home() {
                 {userData && userData.account ? (
                     <div className="balance-info">
                         <p>Numero de cuenta: <strong>{userData.account.number}</strong></p>
-                        <p className="balance-amount">Saldo: {userData.account.balance} $</p>
+                        <p className="balance-amount">Saldo: {userData.account.balance} €</p>
                     </div>
                 ) : (
                     <p>Cargando datos...</p>
