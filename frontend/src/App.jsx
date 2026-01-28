@@ -40,11 +40,10 @@ function MainContent() {
 
   //Siempre el return sera el html con sus componentes
   return (
-    <div className="button-container">
-      <button className="btn" onClick={handleLogin}>Login</button>
-      <button className="btn" onClick={handleRegister}>Registro</button>
-      <div className="header">
-        <img src="./images/ValenciaBankLogo.png" alt="ValenciaBank Logo" />
+    <div className="home-root">
+      <div className="button-container">
+        <button className="btn" onClick={handleLogin}>Login</button>
+        <button className="btn" onClick={handleRegister}>Registro</button>
       </div>
     </div>
   );

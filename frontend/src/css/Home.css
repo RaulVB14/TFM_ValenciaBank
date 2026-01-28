@@ -411,6 +411,18 @@ html, body {
 .transfer-card .btn{width:25%;min-width:120px;display:inline-block}
 @media (max-width: 640px){.transfer-inputs input,.transfer-card .btn{width:80%}} 
 
+/* Make the primary action button on Transfer slightly wider to fit the text */
+.transfer-card .action-btn{
+    width:36%;
+    min-width:160px;
+}
+
+/* Keep exit-btn compact */
+.transfer-card .exit-btn{
+    width:20%;
+    min-width:110px;
+}
+
 /* Make destination account input wider than amount */
 .transfer-inputs .input-amount{width:25%;min-width:120px}
 .transfer-inputs .input-account{width:60%;min-width:260px}
