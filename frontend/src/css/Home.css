@@ -116,6 +116,14 @@ html, body {
 }
 
 /* Card for crypto graphic */
+.graphics-wrapper{
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    width: 100%;
+    margin: 20px 0;
+}
+
 .crypto-graphic-container{
     background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
     border-radius: 18px;
@@ -123,7 +131,7 @@ html, body {
     color: #e6e9ee;
     box-shadow: 0 14px 40px rgba(3,6,15,0.7);
     border: 1px solid rgba(255,213,74,0.06);
-    max-width: 860px;
+    max-width: 100%;
     width: 100%;
 }
 
@@ -217,6 +225,7 @@ html, body {
     .header img{height:40px}
     .top-row{flex-direction:column;}
     .balance-container{min-width:unset;width:100%;}
+    .graphics-wrapper{grid-template-columns: 1fr;}
     .crypto-graphic-container{max-width:100%;}
 }
 

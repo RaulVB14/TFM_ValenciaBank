@@ -26,11 +26,20 @@ function Home() {
     const handleTransfer = () => navigate("/home/Transfer");
     const handleSummary = () => navigate("/home/Summary");
 
+    // Cargar datos del usuario solo al montar
     useEffect(() => {
         fetchUserData();
+    }, []);
+
+    // Cargar datos de crypto solo cuando cambian timeRange o selectedCrypto
+    useEffect(() => {
         fetchCryptoData();
+    }, [timeRange, selectedCrypto]);
+
+    // Cargar datos de fondos solo cuando cambian fundTimeRange o selectedFund
+    useEffect(() => {
         fetchFundData();
-    }, [timeRange, selectedCrypto, fundTimeRange, selectedFund]);
+    }, [fundTimeRange, selectedFund]);
 
     const fetchUserData = async () => {
         try {
@@ -211,10 +220,11 @@ function Home() {
                 )}
             </div>
 
-            <div className="crypto-graphic-container">
-                <h1>Mercado Crypto</h1>
+            <div className="graphics-wrapper">
+                <div className="crypto-graphic-container">
+                    <h1>Mercado Crypto</h1>
 
-                <select value={selectedCrypto} onChange={handleCryptoChange}>
+                    <select value={selectedCrypto} onChange={handleCryptoChange}>
                     <optgroup label="🏆 Top Tier">
                         <option value="BTC">Bitcoin (BTC)</option>
                         <option value="ETH">Ethereum (ETH)</option>
@@ -308,13 +318,13 @@ function Home() {
                 )}
 
                 <CryptoChart dates={chartData.dates} prices={chartData.prices} selectedCrypto={selectedCrypto} />
-            </div>
+                </div>
 
-            {/* ✅ NUEVA SECCIÓN: FONDOS INDEXADOS Y ETFS */}
-            <div className="crypto-graphic-container">
-                <h1>Fondos Indexados & ETFs</h1>
+                {/* ✅ NUEVA SECCIÓN: FONDOS INDEXADOS Y ETFS */}
+                <div className="crypto-graphic-container">
+                    <h1>Fondos Indexados & ETFs</h1>
 
-                <select value={selectedFund} onChange={handleFundChange}>
+                    <select value={selectedFund} onChange={handleFundChange}>
                     <optgroup label="🌍 ETFs Globales">
                         <option value="VWRL">Vanguard FTSE All-World (VWRL)</option>
                         <option value="EUNL">iShares Core MSCI World (EUNL)</option>
@@ -384,6 +394,7 @@ function Home() {
                 )}
 
                 <IndexedFundsGraphic symbol={selectedFund} dates={fundChartData.dates} prices={fundChartData.prices} />
+                </div>
             </div>
         </div>
     );
