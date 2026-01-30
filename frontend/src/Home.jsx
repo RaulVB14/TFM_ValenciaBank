@@ -43,7 +43,7 @@ function Home() {
     };
 
     const fetchCryptoData = async () => {
-        console.log("Obteniendo datos de:", selectedCrypto);
+        console.log("Que crypto me estoy obteniendo ", selectedCrypto);
         try {
             const market = "EUR";
             const token = localStorage.getItem("token");
@@ -52,7 +52,7 @@ function Home() {
                 return;
             }
             const response = await axios.get(
-                `http://localhost:8080/api/crypto/daily?symbol=${selectedCrypto}&market=${market}`,
+                `http://localhost:8080/digitalCurrencyDaily?symbol=${selectedCrypto}&market=${market}`,
                 {
                     headers: {
                         Authorization: `Bearer ${token}`,
@@ -62,11 +62,11 @@ function Home() {
             if (response.data && response.data["Time Series (Digital Currency Daily)"]) {
                 processCryptoData(response.data);
             } else {
-                console.error("Formato de datos inválido:", response.data);
+                console.error("Invalid data format received:", response.data);
                 setChartData({ dates: [], prices: [] });
             }
         } catch (error) {
-            console.error("Error al obtener datos de crypto:", error);
+            console.error("Error fetching crypto data:", error);
             setChartData({ dates: [], prices: [] });
         }
     };
@@ -127,16 +127,64 @@ function Home() {
             </div>
 
             <div className="crypto-graphic-container">
-                <h2>Mercado Crypto</h2>
+                <h1>Mercado Crypto</h1>
 
                 <select value={selectedCrypto} onChange={handleCryptoChange}>
-                    <option value="BTC">Bitcoin (BTC)</option>
-                    <option value="ETH">Ethereum (ETH)</option>
-                    <option value="USDT">Tether (USDT)</option>
-                    <option value="SOL">Solana (SOL)</option>
-                    <option value="XRP">XRP (XRP)</option>
-                    <option value="DOGE">Dogecoin (DOGE)</option>
-                    <option value="ADA">Cardano (ADA)</option>
+                    <optgroup label="🏆 Top Tier">
+                        <option value="BTC">Bitcoin (BTC)</option>
+                        <option value="ETH">Ethereum (ETH)</option>
+                        <option value="USDT">Tether (USDT)</option>
+                        <option value="USDC">USD Coin (USDC)</option>
+                        <option value="BNB">Binance Coin (BNB)</option>
+                    </optgroup>
+                    <optgroup label="⚡ Layer 1 Blockchains">
+                        <option value="SOL">Solana (SOL)</option>
+                        <option value="ADA">Cardano (ADA)</option>
+                        <option value="AVAX">Avalanche (AVAX)</option>
+                        <option value="DOT">Polkadot (DOT)</option>
+                        <option value="NEAR">NEAR Protocol (NEAR)</option>
+                        <option value="COSMOS">Cosmos (ATOM)</option>
+                        <option value="ALGO">Algorand (ALGO)</option>
+                    </optgroup>
+                    <optgroup label="🔗 Layer 2 & Scaling">
+                        <option value="MATIC">Polygon (MATIC)</option>
+                        <option value="ARB">Arbitrum (ARB)</option>
+                        <option value="OP">Optimism (OP)</option>
+                        <option value="LINSEA">Linea (LINEA)</option>
+                    </optgroup>
+                    <optgroup label="🔶 DeFi & Exchange">
+                        <option value="UNI">Uniswap (UNI)</option>
+                        <option value="AAVE">Aave (AAVE)</option>
+                        <option value="CRV">Curve (CRV)</option>
+                        <option value="LINK">Chainlink (LINK)</option>
+                        <option value="SUSHI">SushiSwap (SUSHI)</option>
+                    </optgroup>
+                    <optgroup label="🌐 Web3 & Infrastructure">
+                        <option value="FIL">Filecoin (FIL)</option>
+                        <option value="ICP">Internet Computer (ICP)</option>
+                        <option value="THO">Thorchain (RUNE)</option>
+                        <option value="GRT">The Graph (GRT)</option>
+                    </optgroup>
+                    <optgroup label="🎮 Metaverse & Gaming">
+                        <option value="AXS">Axie Infinity (AXS)</option>
+                        <option value="SAND">The Sandbox (SAND)</option>
+                        <option value="MANA">Decentraland (MANA)</option>
+                    </optgroup>
+                    <optgroup label="💰 Meme & Alternatives">
+                        <option value="DOGE">Dogecoin (DOGE)</option>
+                        <option value="SHIB">Shiba Inu (SHIB)</option>
+                        <option value="PEPE">Pepe (PEPE)</option>
+                        <option value="FLOKI">Floki Inu (FLOKI)</option>
+                    </optgroup>
+                    <optgroup label="📊 Privacy & Others">
+                        <option value="XMR">Monero (XMR)</option>
+                        <option value="ZEC">Zcash (ZEC)</option>
+                        <option value="DASH">Dash (DASH)</option>
+                        <option value="XRP">Ripple (XRP)</option>
+                        <option value="XLM">Stellar (XLM)</option>
+                        <option value="LTC">Litecoin (LTC)</option>
+                        <option value="BCH">Bitcoin Cash (BCH)</option>
+                    </optgroup>
                 </select>
 
                 <div className="days-buttons">
