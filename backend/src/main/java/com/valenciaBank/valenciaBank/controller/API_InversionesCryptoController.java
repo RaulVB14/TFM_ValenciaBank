@@ -12,10 +12,24 @@ public class API_InversionesCryptoController {
     @Autowired
     private  CryptoService cryptoService;
 
-    // ✅ GET - Devuelve datos de la API Local
+    // ✅ GET - Devuelve datos de criptomonedas
     @GetMapping("/digitalCurrencyDaily")
     public ResponseEntity<String> getDigitalCurrencyDaily(@RequestParam String symbol, @RequestParam String market) {
         String data = cryptoService.llamarAPI(symbol, market);
+        return ResponseEntity.ok(data);
+    }
+
+    // ✅ GET - Devuelve datos de ETFs e Índices Bursátiles (NEW)
+    @GetMapping("/equityDaily")
+    public ResponseEntity<String> getEquityDaily(@RequestParam String symbol) {
+        String data = cryptoService.llamarEquityAPI(symbol);
+        return ResponseEntity.ok(data);
+    }
+
+    // ✅ GET - Devuelve perfil de un ETF con sus holdings (NEW)
+    @GetMapping("/etfProfile")
+    public ResponseEntity<String> getETFProfile(@RequestParam String symbol) {
+        String data = cryptoService.getETFProfile(symbol);
         return ResponseEntity.ok(data);
     }
 

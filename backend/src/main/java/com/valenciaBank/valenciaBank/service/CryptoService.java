@@ -38,11 +38,17 @@ public class CryptoService {
                     .bodyToMono(String.class)
                     .block();
 
+            // Detectar si es error de rate limit
+            if (data.contains("rate limit") || data.contains("standard API rate limit")) {
+                System.err.println("⚠️ Rate limit alcanzado en Alpha Vantage API");
+                return "{\"error\":\"Debes pagar servicio premium si quieres acceder a esta información.\"}";                
+            }
+
             // Validar que la respuesta contenga datos válidos
             JSONObject jsonResponse = new JSONObject(data);
             if (!jsonResponse.has("Time Series (Digital Currency Daily)")) {
                 System.err.println("⚠️ API no retornó datos para " + crytpoName + ". Respuesta: " + data);
-                return "{\"error\":\"La criptomoneda " + crytpoName + " no está disponible en esta API. Intenta con otra o espera a que los datos se carguen.\"}";
+                return "{\"error\":\"De momento no trabajamos con la criptomoneda " + crytpoName + ". Intenta con otra.\"}";
             }
 
             cachedData.put(crytpoName + "-" + market, data);
@@ -50,7 +56,7 @@ public class CryptoService {
             return data;
         } catch (Exception e) {
             e.printStackTrace();
-            return "{\"error\":\"Error al obtener datos de la API externa: " + e.getMessage() + "\"}";
+            return "{\"error\":\"De momento no trabajamos con la criptomoneda " + crytpoName + ". Intenta con otra.\"}";
         }
     }
 
@@ -64,6 +70,66 @@ public class CryptoService {
         } else {
             System.out.println("Obtengo datos de API EXTERNA: " + cryptoName);
             return llamarAPIExterna(cryptoName, market);
+        }
+    }
+
+    // ✅ Llama a la API para obtener datos de Acciones/ETFs/Índices (TIME_SERIES_DAILY)
+    public String llamarEquityAPI(String symbol) {
+        String url = "https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol="
+                    + symbol + "&apikey=" + apiKey;
+        try {
+            String data = webClient.get()
+                    .uri(url)
+                    .retrieve()
+                    .bodyToMono(String.class)
+                    .block();
+
+            // Detectar si es error de rate limit
+            if (data.contains("rate limit") || data.contains("standard API rate limit")) {
+                System.err.println("⚠️ Rate limit alcanzado en Alpha Vantage API");
+                return "{\"error\":\"Debes pagar servicio premium si quieres acceder a esta información.\"}";                
+            }
+
+            // Validar que la respuesta contenga datos válidos
+            JSONObject jsonResponse = new JSONObject(data);
+            if (!jsonResponse.has("Time Series (Daily)")) {
+                System.err.println("⚠️ API no retornó datos para " + symbol + ". Respuesta: " + data);
+                return "{\"error\":\"De momento no trabajamos con el símbolo " + symbol + ". Intenta con otro.\"}";
+            }
+
+            return data;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "{\"error\":\"De momento no trabajamos con el símbolo " + symbol + ". Intenta con otro.\"}";
+        }
+    }
+
+    // ✅ NUEVO: Obtener Perfil de ETF con sus holdings
+    public String getETFProfile(String symbol) {
+        try {
+            String url = "https://www.alphavantage.co/query?function=ETF_PROFILE&symbol="
+                    + symbol + "&apikey=" + apiKey;
+            
+            String data = webClient.get()
+                    .uri(url)
+                    .retrieve()
+                    .bodyToMono(String.class)
+                    .block();
+            
+            // Detectar si es error de rate limit
+            if (data.contains("rate limit") || data.contains("standard API rate limit")) {
+                System.err.println("⚠️ Rate limit alcanzado en Alpha Vantage API");
+                return "{\"error\":\"Debes pagar servicio premium si quieres acceder a esta información.\"}";                
+            }
+            
+            JSONObject response = new JSONObject(data);
+            if (!response.has("symbol")) {
+                return "{\"error\":\"No se encontró información del ETF " + symbol + "\"}";
+            }
+            
+            return data;
+        } catch (Exception e) {
+            return "{\"error\":\"Error obteniendo perfil del ETF " + symbol + "\"}";
         }
     }
 

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import CryptoChart from "./components/CryptoGraphic.jsx";
+import IndexedFundsGraphic from "./components/IndexedFundsGraphic.jsx";
 import { FaSignOutAlt, FaUser, FaMoneyBillAlt, FaExchangeAlt, FaHistory } from "react-icons/fa";
 
 function Home() {
@@ -12,6 +13,12 @@ function Home() {
     const [timeRange, setTimeRange] = useState("7");
     const [selectedCrypto, setSelectedCrypto] = useState("BTC");
     const [errorMessage, setErrorMessage] = useState("");
+    
+    // Estados para Fondos Indexados y ETFs
+    const [selectedFund, setSelectedFund] = useState("VWRL");
+    const [fundChartData, setFundChartData] = useState({ dates: [], prices: [] });
+    const [fundTimeRange, setFundTimeRange] = useState("7");
+    const [fundErrorMessage, setFundErrorMessage] = useState("");
 
     const Exit = () => navigate("/");
     const handleProfile = () => navigate("/home/Profile");
@@ -22,7 +29,8 @@ function Home() {
     useEffect(() => {
         fetchUserData();
         fetchCryptoData();
-    }, [timeRange, selectedCrypto]);
+        fetchFundData();
+    }, [timeRange, selectedCrypto, fundTimeRange, selectedFund]);
 
     const fetchUserData = async () => {
         try {
@@ -106,6 +114,70 @@ function Home() {
 
     const handleCryptoChange = (event) => {
         setSelectedCrypto(event.target.value);
+    };
+
+    // ✅ Obtener datos de Fondos Indexados y ETFs
+    const fetchFundData = async () => {
+        console.log("Obteniendo datos de fondo:", selectedFund);
+        setFundErrorMessage("");
+        try {
+            const token = localStorage.getItem("token");
+            if (!token) {
+                console.error("Token no encontrado");
+                return;
+            }
+            const response = await axios.get(
+                `http://localhost:8080/equityDaily?symbol=${selectedFund}`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                }
+            );
+
+            if (response.data.error) {
+                console.error("Error:", response.data.error);
+                setFundErrorMessage(response.data.error);
+                setFundChartData({ dates: [], prices: [] });
+                return;
+            }
+
+            if (response.data && response.data["Time Series (Daily)"]) {
+                processFundData(response.data);
+            } else {
+                console.error("Formato inválido:", response.data);
+                setFundErrorMessage("No hay datos disponibles para este fondo. Intenta con otro.");
+                setFundChartData({ dates: [], prices: [] });
+            }
+        } catch (error) {
+            console.error("Error al obtener datos:", error);
+            setFundErrorMessage("Error al obtener datos. Intenta nuevamente.");
+            setFundChartData({ dates: [], prices: [] });
+        }
+    };
+
+    const processFundData = (data) => {
+        const timeSeries = data["Time Series (Daily)"];
+        if (!timeSeries) {
+            console.error("No time series data available");
+            return;
+        }
+
+        const dates = Object.keys(timeSeries);
+        dates.sort((a, b) => new Date(a) - new Date(b));
+
+        const numDays = parseInt(fundTimeRange);
+        const recentDates = dates.slice(Math.max(dates.length - numDays, 0));
+        const prices = recentDates.map((date) => {
+            const closePrice = timeSeries[date]["4. close"];
+            return closePrice ? parseFloat(closePrice) : null;
+        }).filter(price => price !== null);
+
+        setFundChartData({ dates: recentDates, prices: prices });
+    };
+
+    const handleFundChange = (event) => {
+        setSelectedFund(event.target.value);
     };
 
     return (
@@ -236,6 +308,82 @@ function Home() {
                 )}
 
                 <CryptoChart dates={chartData.dates} prices={chartData.prices} selectedCrypto={selectedCrypto} />
+            </div>
+
+            {/* ✅ NUEVA SECCIÓN: FONDOS INDEXADOS Y ETFS */}
+            <div className="crypto-graphic-container">
+                <h1>Fondos Indexados & ETFs</h1>
+
+                <select value={selectedFund} onChange={handleFundChange}>
+                    <optgroup label="🌍 ETFs Globales">
+                        <option value="VWRL">Vanguard FTSE All-World (VWRL)</option>
+                        <option value="EUNL">iShares Core MSCI World (EUNL)</option>
+                        <option value="SWRD">iShares Core MSCI World (SWRD)</option>
+                    </optgroup>
+                    <optgroup label="🇺🇸 USA Índices">
+                        <option value="SPY">S&P 500 (SPY)</option>
+                        <option value="VOO">Vanguard S&P 500 (VOO)</option>
+                        <option value="IVV">iShares Core S&P 500 (IVV)</option>
+                    </optgroup>
+                    <optgroup label="🇪🇺 Europa">
+                        <option value="VEUR">Vanguard FTSE Developed Europe (VEUR)</option>
+                        <option value="ECOS">iShares MSCI Spain (ECOS)</option>
+                        <option value="XESC">iShares MSCI Spain (XESC)</option>
+                    </optgroup>
+                    <optgroup label="📊 Índices Principales">
+                        <option value="^IBEX">IBEX 35 (España)</option>
+                        <option value="^GSPC">S&P 500 (USA)</option>
+                        <option value="^IXIC">NASDAQ (USA)</option>
+                        <option value="^DJI">Dow Jones (USA)</option>
+                    </optgroup>
+                    <optgroup label="💼 Sectores Específicos">
+                        <option value="XLK">Tecnología (XLK)</option>
+                        <option value="XLF">Financiero (XLF)</option>
+                        <option value="XLV">Salud (XLV)</option>
+                        <option value="XLE">Energía (XLE)</option>
+                    </optgroup>
+                    <optgroup label="🎯 Dividendos">
+                        <option value="VYME">Vanguard Emerging Markets High Dividend (VYME)</option>
+                        <option value="IUSA">iShares Core S&P U.S. Value (IUSA)</option>
+                    </optgroup>
+                </select>
+
+                <div className="days-buttons">
+                    <button onClick={() => setFundTimeRange("7")} className={fundTimeRange === "7" ? "active" : ""}>1S</button>
+                    <button onClick={() => setFundTimeRange("30")} className={fundTimeRange === "30" ? "active" : ""}>1M</button>
+                    <button onClick={() => setFundTimeRange("90")} className={fundTimeRange === "90" ? "active" : ""}>3M</button>
+                    <button onClick={() => setFundTimeRange("365")} className={fundTimeRange === "365" ? "active" : ""}>1Y</button>
+                </div>
+
+                {fundErrorMessage && (
+                    <div style={{
+                        background: "rgba(255, 59, 48, 0.12)",
+                        border: "1px solid rgba(255, 59, 48, 0.3)",
+                        color: "#ff3b30",
+                        padding: "12px 16px",
+                        borderRadius: "10px",
+                        marginBottom: "12px",
+                        fontSize: "14px"
+                    }}>
+                        ⚠️ {fundErrorMessage}
+                    </div>
+                )}
+
+                {fundChartData.dates.length === 0 && !fundErrorMessage && (
+                    <div style={{
+                        background: "rgba(255, 213, 74, 0.08)",
+                        border: "1px solid rgba(255, 213, 74, 0.2)",
+                        color: "#ffd54a",
+                        padding: "12px 16px",
+                        borderRadius: "10px",
+                        marginBottom: "12px",
+                        fontSize: "14px"
+                    }}>
+                        ⏳ Cargando datos del gráfico...
+                    </div>
+                )}
+
+                <IndexedFundsGraphic symbol={selectedFund} dates={fundChartData.dates} prices={fundChartData.prices} />
             </div>
         </div>
     );
