@@ -11,6 +11,7 @@ function Home() {
     const [chartData, setChartData] = useState({ dates: [], prices: [] });
     const [timeRange, setTimeRange] = useState("7");
     const [selectedCrypto, setSelectedCrypto] = useState("BTC");
+    const [errorMessage, setErrorMessage] = useState("");
 
     const Exit = () => navigate("/");
     const handleProfile = () => navigate("/home/Profile");
@@ -43,7 +44,8 @@ function Home() {
     };
 
     const fetchCryptoData = async () => {
-        console.log("Que crypto me estoy obteniendo ", selectedCrypto);
+        console.log("Obteniendo datos de:", selectedCrypto);
+        setErrorMessage(""); // Limpiar errores previos
         try {
             const market = "EUR";
             const token = localStorage.getItem("token");
@@ -59,14 +61,25 @@ function Home() {
                     },
                 }
             );
+            
+            // Verificar si hay un error en la respuesta
+            if (response.data.error) {
+                console.error("Error del servidor:", response.data.error);
+                setErrorMessage(response.data.error);
+                setChartData({ dates: [], prices: [] });
+                return;
+            }
+            
             if (response.data && response.data["Time Series (Digital Currency Daily)"]) {
                 processCryptoData(response.data);
             } else {
-                console.error("Invalid data format received:", response.data);
+                console.error("Formato de datos inválido:", response.data);
+                setErrorMessage("No hay datos disponibles para esta criptomoneda. Intenta con otra.");
                 setChartData({ dates: [], prices: [] });
             }
         } catch (error) {
-            console.error("Error fetching crypto data:", error);
+            console.error("Error al obtener datos de crypto:", error);
+            setErrorMessage("Error al obtener datos. Intenta nuevamente.");
             setChartData({ dates: [], prices: [] });
         }
     };
@@ -193,6 +206,35 @@ function Home() {
                     <button onClick={() => setTimeRange("90")} className={timeRange === "90" ? "active" : ""}>3M</button>
                     <button onClick={() => setTimeRange("365")} className={timeRange === "365" ? "active" : ""}>1Y</button>
                 </div>
+
+                {errorMessage && (
+                    <div style={{
+                        background: "rgba(255, 59, 48, 0.12)",
+                        border: "1px solid rgba(255, 59, 48, 0.3)",
+                        color: "#ff3b30",
+                        padding: "12px 16px",
+                        borderRadius: "10px",
+                        marginBottom: "12px",
+                        fontSize: "14px"
+                    }}>
+                        ⚠️ {errorMessage}
+                    </div>
+                )}
+
+                {chartData.dates.length === 0 && !errorMessage && (
+                    <div style={{
+                        background: "rgba(255, 213, 74, 0.08)",
+                        border: "1px solid rgba(255, 213, 74, 0.2)",
+                        color: "#ffd54a",
+                        padding: "12px 16px",
+                        borderRadius: "10px",
+                        marginBottom: "12px",
+                        fontSize: "14px"
+                    }}>
+                        ⏳ Cargando datos del gráfico...
+                    </div>
+                )}
+
                 <CryptoChart dates={chartData.dates} prices={chartData.prices} selectedCrypto={selectedCrypto} />
             </div>
         </div>

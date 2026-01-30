@@ -38,12 +38,19 @@ public class CryptoService {
                     .bodyToMono(String.class)
                     .block();
 
+            // Validar que la respuesta contenga datos válidos
+            JSONObject jsonResponse = new JSONObject(data);
+            if (!jsonResponse.has("Time Series (Digital Currency Daily)")) {
+                System.err.println("⚠️ API no retornó datos para " + crytpoName + ". Respuesta: " + data);
+                return "{\"error\":\"La criptomoneda " + crytpoName + " no está disponible en esta API. Intenta con otra o espera a que los datos se carguen.\"}";
+            }
+
             cachedData.put(crytpoName + "-" + market, data);
             saveDataInOurBBDD(cachedData, crytpoName, market);
             return data;
         } catch (Exception e) {
             e.printStackTrace();
-            return "{\"error\":\"Error al obtener datos de la API externa\"}";
+            return "{\"error\":\"Error al obtener datos de la API externa: " + e.getMessage() + "\"}";
         }
     }
 
@@ -216,24 +223,35 @@ public class CryptoService {
 
     // Guarda los datos en la base de datos
     public void saveDataInOurBBDD(Map<String, String> data, String crytpoName, String market) {
-        String cryptoEurJson = data.get(crytpoName + "-" + market);
-        JSONObject dataJSON = new JSONObject(cryptoEurJson);
+        try {
+            String cryptoEurJson = data.get(crytpoName + "-" + market);
+            JSONObject dataJSON = new JSONObject(cryptoEurJson);
 
-        JSONObject timeSeries = dataJSON.getJSONObject("Time Series (Digital Currency Daily)");
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+            // Validar que existe la clave antes de intentar acceder
+            if (!dataJSON.has("Time Series (Digital Currency Daily)")) {
+                System.err.println("⚠️ No hay 'Time Series' para " + crytpoName);
+                return;
+            }
 
-        for (String date : timeSeries.keySet()) {
-            JSONObject values = timeSeries.getJSONObject(date);
+            JSONObject timeSeries = dataJSON.getJSONObject("Time Series (Digital Currency Daily)");
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
-            Crypto crypto = new Crypto();
-            crypto.setName(crytpoName);
-            crypto.setDate(LocalDate.parse(date, formatter));
-            crypto.setOpen(values.getDouble("1. open"));
-            crypto.setHigh(values.getDouble("2. high"));
-            crypto.setLow(values.getDouble("3. low"));
-            crypto.setClose(values.getDouble("4. close"));
-            crypto.setVolume(values.getDouble("5. volume"));
-            cryptoRepository.save(crypto);
+            for (String date : timeSeries.keySet()) {
+                JSONObject values = timeSeries.getJSONObject(date);
+
+                Crypto crypto = new Crypto();
+                crypto.setName(crytpoName);
+                crypto.setDate(LocalDate.parse(date, formatter));
+                crypto.setOpen(values.getDouble("1. open"));
+                crypto.setHigh(values.getDouble("2. high"));
+                crypto.setLow(values.getDouble("3. low"));
+                crypto.setClose(values.getDouble("4. close"));
+                crypto.setVolume(values.getDouble("5. volume"));
+                cryptoRepository.save(crypto);
+            }
+        } catch (Exception e) {
+            System.err.println("❌ Error guardando datos de " + crytpoName + ": " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
