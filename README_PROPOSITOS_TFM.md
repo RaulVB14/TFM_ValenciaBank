@@ -1,3 +1,30 @@
+1. Migrar la bbdd a remoto, tener una URL publica
+2. Ponerle un chatbot a la página para indicar cuando vender, mantener o comprar
+3. Premitir que se puedan comprar y vender criptos y ETFs.
+4. Crear portfolios a los usuarios para que puedan ver sus activos.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 --Pasos para migrar a remoto
 2. Ve a https://railway.app
 Haz clic en "Start Project"
