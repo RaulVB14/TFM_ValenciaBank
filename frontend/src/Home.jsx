@@ -43,7 +43,7 @@ function Home() {
     };
 
     const fetchCryptoData = async () => {
-        console.log("Que crypto me estoy obteniendo ", selectedCrypto);
+        console.log("Obteniendo datos de:", selectedCrypto);
         try {
             const market = "EUR";
             const token = localStorage.getItem("token");
@@ -52,7 +52,7 @@ function Home() {
                 return;
             }
             const response = await axios.get(
-                `http://localhost:8080/digitalCurrencyDaily?symbol=${selectedCrypto}&market=${market}`,
+                `http://localhost:8080/api/crypto/daily?symbol=${selectedCrypto}&market=${market}`,
                 {
                     headers: {
                         Authorization: `Bearer ${token}`,
@@ -62,11 +62,11 @@ function Home() {
             if (response.data && response.data["Time Series (Digital Currency Daily)"]) {
                 processCryptoData(response.data);
             } else {
-                console.error("Invalid data format received:", response.data);
+                console.error("Formato de datos inválido:", response.data);
                 setChartData({ dates: [], prices: [] });
             }
         } catch (error) {
-            console.error("Error fetching crypto data:", error);
+            console.error("Error al obtener datos de crypto:", error);
             setChartData({ dates: [], prices: [] });
         }
     };
@@ -127,7 +127,7 @@ function Home() {
             </div>
 
             <div className="crypto-graphic-container">
-                <h1>Mercado Crypto</h1>
+                <h2>Mercado Crypto</h2>
 
                 <select value={selectedCrypto} onChange={handleCryptoChange}>
                     <option value="BTC">Bitcoin (BTC)</option>
