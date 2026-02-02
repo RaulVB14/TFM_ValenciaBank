@@ -53,6 +53,8 @@ ehthumbs.db
 !.env.local.example
 !.env.prod.example
 
+.env.example
+
 # APPLICATION CONFIGURATION WITH SECRETS
 backend/src/main/resources/application.properties
 backend/src/main/resources/application-*.properties
