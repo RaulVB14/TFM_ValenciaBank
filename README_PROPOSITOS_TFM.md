@@ -1,39 +1,17 @@
 1. Migrar la bbdd a remoto, tener una URL publica
 2. Ponerle un chatbot a la página para indicar cuando vender, mantener o comprar
 3. Premitir que se puedan comprar y vender criptos y ETFs.
-4. Crear portfolios a los usuarios para que puedan ver sus activos.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+3. Crear portfolios a los usuarios para que puedan ver sus activos.
 
 --Pasos para migrar a remoto
-2. Ve a https://railway.app
+1. Ve a https://railway.app
 Haz clic en "Start Project"
 Elige "Deploy from GitHub"
 Selecciona tu repo valenciabank
-3. Railway detectará el proyecto Maven
+1. Railway detectará el proyecto Maven
 Automáticamente compilará y levantará la app
 Importante: Railway automáticamente crea una BD MariaDB cuando lo solicites
-4. Añade la base de datos MariaDB
+1. Añade la base de datos MariaDB
 En el dashboard de Railway:
 
 Haz clic en "+ Add Service"

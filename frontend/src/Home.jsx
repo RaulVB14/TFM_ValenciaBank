@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import CryptoChart from "./components/CryptoGraphic.jsx";
 import IndexedFundsGraphic from "./components/IndexedFundsGraphic.jsx";
+import BuyCryptoForm from "./components/BuyCryptoForm.jsx";
 import { FaSignOutAlt, FaUser, FaMoneyBillAlt, FaExchangeAlt, FaHistory } from "react-icons/fa";
 
 function Home() {
@@ -55,6 +56,7 @@ function Home() {
                 },
             });
             setUserData(response.data);
+            console.log("✅ Datos del usuario actualizados:", response.data);
         } catch (error) {
             console.error("Error al obtener los datos del usuario", error);
         }
@@ -396,6 +398,9 @@ function Home() {
                 <IndexedFundsGraphic symbol={selectedFund} dates={fundChartData.dates} prices={fundChartData.prices} />
                 </div>
             </div>
+
+            {/* 🛒 FORMULARIO DE COMPRA DE CRIPTOS */}
+            <BuyCryptoForm userData={userData} onPurchaseSuccess={() => fetchUserData()} />
         </div>
     );
 }

@@ -13,11 +13,13 @@ import java.util.Date;
 @Component
 public class Jwt {
 
-    private static final String SECRET_KEY = "tontosilolees";
-
+    private static final String SECRET_KEY = System.getenv("JWT_KEY");
     private static final long EXPIRATION_TIME = 86400000;
 
     public static String generateToken(String dni) {
+        if (SECRET_KEY == null || SECRET_KEY.isEmpty()) {
+            throw new IllegalStateException("JWT_KEY no está configurada en el entorno");
+        }
         return JWT.create()
                 .withSubject(dni)
                 .withExpiresAt(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
@@ -26,20 +28,16 @@ public class Jwt {
 
     public static String validateToken(String token) {
         try {
-            return JWT.require(Algorithm.HMAC256(getSecretStatic())) //use of static method.
+            if (SECRET_KEY == null || SECRET_KEY.isEmpty()) {
+                throw new IllegalStateException("JWT_KEY no está configurada en el entorno");
+            }
+            return JWT.require(Algorithm.HMAC256(SECRET_KEY))
                     .build()
                     .verify(token)
                     .getSubject();
         } catch (JWTVerificationException e) {
             return null;
         }
-    }
-
-    private static String getSecretStatic(){
-        //this is a workaround, as the @Value annotation does not work in static context.
-        //it should be improved.
-        Jwt jwt = new Jwt();
-        return SECRET_KEY;
     }
 }
 

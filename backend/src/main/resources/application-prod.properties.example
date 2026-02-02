@@ -1,0 +1,45 @@
+# =============================================================================
+# EXAMPLE APPLICATION PRODUCTION PROPERTIES - COPY AND CONFIGURE WITH YOUR OWN VALUES
+# =============================================================================
+# IMPORTANTE: Renombra este archivo a 'application-prod.properties' y configura
+# con tus propias credenciales seguras. NUNCA commitees el archivo sin .example
+# =============================================================================
+
+spring.application.name=valenciabank
+
+# =============================================================================
+# DATABASE CONFIGURATION - RAILWAY / PRODUCTION
+# =============================================================================
+# Railway proporciona estas variables automáticamente como variables de entorno
+# No hardcodees credenciales aquí
+spring.datasource.url=jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:valenciabank}?useSSL=false&allowPublicKeyRetrieval=true
+spring.datasource.username=${DB_USER:root}
+spring.datasource.password=${DB_PASSWORD:YOUR_PASSWORD}
+
+# Hibernate Configuration
+spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.MySQL8Dialect
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.show-sql=false
+
+# =============================================================================
+# API & EXTERNAL SERVICES
+# =============================================================================
+api.key=${API_KEY:YOUR_API_KEY_HERE}
+
+# =============================================================================
+# SECURITY
+# =============================================================================
+# JWT Key from environment variable (minimum 256 bits recommended)
+jwt.key=${JWT_KEY:YOUR_SECRET_JWT_KEY_HERE}
+
+# =============================================================================
+# SERVER CONFIGURATION
+# =============================================================================
+server.port=${PORT:8080}
+server.servlet.context-path=/
+
+# =============================================================================
+# LOGGING - PRODUCTION SHOULD BE INFO OR WARN
+# =============================================================================
+logging.level.root=WARN
+logging.level.com.valenciaBank=INFO

@@ -1,11 +1,16 @@
-﻿# Node / React
+﻿# =============================================================================
+# PROYECTO: Valencia Bank - Global .gitignore
+# =============================================================================
+
+# Node / React Frontend
 frontend/node_modules/
 frontend/dist/
-frontend/.env
+frontend/dist-ssr/
 frontend/.vite
 frontend/.eslintcache
+frontend/*.local
 
-# Java / Spring
+# Java / Spring Backend
 backend/target/
 backend/.idea/
 backend/.classpath
@@ -13,39 +18,64 @@ backend/.project
 backend/.settings/
 backend/.mvn/
 backend/mvnw*
-backend/src/main/resources/application.properties
+backend/build/
+backend/.gradle/
 
-# Sistema
+# Build and logs
 *.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS files
 .DS_Store
+Thumbs.db
+ehthumbs.db
 
+# Archives
 *.zip
+*.tar.gz
+*.rar
 
-# -----------------------------------------------------------------------------
-# Confidential / secrets (added to avoid committing credentials or private keys)
-# -----------------------------------------------------------------------------
-# Environment files
+# =============================================================================
+# CONFIDENTIAL / SECRETS - CRITICAL SECTION
+# =============================================================================
+
+# ENVIRONMENT VARIABLES - NEVER COMMIT
 .env
-*.env
-*.env.local
+.env.local
 .env.*.local
+.env.production
 .envrc
+!.env.example
+!.env.local.example
+!.env.prod.example
 
-# Credentials and service accounts
+# APPLICATION CONFIGURATION WITH SECRETS
+backend/src/main/resources/application.properties
+backend/src/main/resources/application-*.properties
+!backend/src/main/resources/application.properties.example
+!backend/src/main/resources/application-prod.properties.example
+
+# CREDENTIALS AND SERVICE ACCOUNTS
 credentials.json
 google-services.json
-service-account.json
-secret*.json
+service-account*.json
 secrets.json
+*.key.json
 
-# Cloud provider credentials
+# CLOUD PROVIDER CREDENTIALS
 .aws/
 .aws/credentials
+.aws/config
 .azure/
 .gcloud/
-google-cloud-key.json
+.google-cloud-key.json
+cloud-config.json
 
-# Private keys, certificates, keystores and tokens
+# PRIVATE KEYS, CERTIFICATES & KEYSTORES
 *.pem
 *.key
 *.p12
@@ -56,25 +86,42 @@ google-cloud-key.json
 *.csr
 *.der
 *.asc
+
+# TOKENS & SECRETS
 *.token
+token*
+*.secret
+secret*
+jwt.*
 
-# SSH keys (if accidentally present in repo)
+# SSH / GPG KEYS
 id_rsa
+id_dsa
+id_ecdsa
+id_ed25519
 id_rsa.pub
+id_dsa.pub
 .ssh/
+.gnupg/
 
-# IDE/editor settings (may contain tokens)
+# IDE SETTINGS (MAY CONTAIN TOKENS)
 .vscode/
 *.code-workspace
+!.vscode/extensions.json
 
-# Additional common build/log files
-build/
-dist/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-logs/
+# DATABASE DUMPS & BACKUPS
+*.sql
+*.dump
+*.bak
+*.backup
 
-# OS files
-Thumbs.db
-ehthumbs.db
+# MAVEN/GRADLE LOCAL SETTINGS
+.m2/
+settings.xml
+local.properties
+
+# MISC SENSITIVE FILES
+*.keytab
+*.krb5
+database.conf
+db.conf

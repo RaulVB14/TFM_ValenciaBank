@@ -29,6 +29,9 @@ public class User implements Serializable {
     @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
     private Set<Transaction> transactions;
 
+    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<CryptoPurchase> cryptoPortfolio;
+
     public User() {}
 
 
@@ -81,6 +84,13 @@ public class User implements Serializable {
         this.transactions = transactions;
     }
 
+    public Set<CryptoPurchase> getCryptoPortfolio() {
+        return cryptoPortfolio;
+    }
+
+    public void setCryptoPortfolio(Set<CryptoPurchase> cryptoPortfolio) {
+        this.cryptoPortfolio = cryptoPortfolio;
+    }
 
     @Override
     public String toString() {
@@ -91,6 +101,7 @@ public class User implements Serializable {
                 ", dni='" + dni + '\'' +
                 ", account=" + account +
                 ", transactions=" + transactions +
+                ", cryptoPortfolio=" + cryptoPortfolio +
                 '}';
     }
 }
