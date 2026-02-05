@@ -50,7 +50,7 @@ public class UserController {
         User authenticatedUser = userService.getUserByDniAndPassword(user.getDni(), user.getPassword());
 
         if (authenticatedUser != null) {
-            String token = jwt.generateToken(String.valueOf(authenticatedUser));
+            String token = Jwt.generateToken(String.valueOf(authenticatedUser.getDni()));
             return ResponseEntity.ok(new TokenResponse(token)); // Devuelve el token en un objeto JSON
         } else {
             return ResponseEntity.status(401).body("Credenciales incorrectas");
