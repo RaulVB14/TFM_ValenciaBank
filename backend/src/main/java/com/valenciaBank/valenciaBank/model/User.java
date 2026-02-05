@@ -2,7 +2,7 @@ package com.valenciaBank.valenciaBank.model;
 
 import jakarta.persistence.*;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.io.Serializable;
 import java.util.Set;
@@ -30,6 +30,7 @@ public class User implements Serializable {
     private Set<Transaction> transactions;
 
     @OneToMany(mappedBy = "user", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
     private Set<CryptoPurchase> cryptoPortfolio;
 
     public User() {}

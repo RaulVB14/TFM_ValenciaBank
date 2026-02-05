@@ -17,7 +17,6 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/crypto-prices")
-@CrossOrigin(origins = "*")
 public class CryptoPriceController {
 
     @Autowired

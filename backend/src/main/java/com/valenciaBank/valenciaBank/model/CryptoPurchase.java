@@ -1,6 +1,7 @@
 package com.valenciaBank.valenciaBank.model;
 
 import jakarta.persistence.*;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 
@@ -13,6 +14,7 @@ public class CryptoPurchase implements Serializable {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
+    @JsonIgnore
     private User user;
 
     @Column(nullable = false)

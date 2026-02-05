@@ -66,7 +66,9 @@ function BuyCryptoForm({ userData, onPurchaseSuccess }) {
 
             if (response.data.success) {
                 setMessageType('success');
-                setMessage(`✅ ¡Compra exitosa! Compraste ${quantity} ${symbol} por ${response.data.totalCost.toFixed(2)} EUR`);
+                const precio = response.data.pricePerUnit || response.data.totalCost / response.data.quantity;
+                console.log("✅ Compra exitosa - Precio usado:", precio);
+                setMessage(`✅ ¡Compra exitosa! Compraste ${quantity} ${symbol} por ${response.data.totalCost.toFixed(2)} EUR (${precio.toFixed(2)} EUR/unidad)`);
                 setQuantity('');
                 
                 // Actualizar datos del usuario después de la compra

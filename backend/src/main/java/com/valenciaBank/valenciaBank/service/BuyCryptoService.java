@@ -39,6 +39,9 @@ public class BuyCryptoService {
     @Autowired
     private CryptoPriceRepository cryptoPriceRepository;
 
+    @Autowired
+    private CoinGeckoService coinGeckoService;
+
     /**
      * Compra una criptomoneda si el usuario tiene saldo suficiente
      * @param userId ID del usuario
@@ -111,72 +114,83 @@ public class BuyCryptoService {
     }
 
     /**
-     * Obtiene el precio actual de una criptomoneda desde la BD local
-     * Si no existe, intenta obtenerlo de la API y lo almacena
+     * Obtiene el precio actual de una criptomoneda
+     * Siempre intenta obtener el precio ACTUAL de CoinGecko
+     * Si falla, usa el precio en caché de BD como fallback
      */
     private Double getCurrentPrice(String symbol, String market) {
         try {
-            // 1. Buscar primero en la BD local
+            // 1. PRIORIDAD: Obtener precio actual de CoinGecko
+            System.out.println("📊 Obteniendo precio ACTUAL de CoinGecko para " + symbol + " en " + market + "...");
+            try {
+                String jsonResponse = coinGeckoService.getCryptoData(symbol, market);
+                System.out.println("📄 Respuesta de CoinGecko: " + jsonResponse);
+                
+                // Parsear respuesta JSON de CoinGecko
+                ObjectMapper mapper = new ObjectMapper();
+                JsonNode root = mapper.readTree(jsonResponse);
+                
+                // Validar que no hay error
+                if (root.has("error")) {
+                    System.err.println("❌ Error en respuesta de CoinGecko: " + root.get("error").asText());
+                    throw new Exception("API error: " + root.get("error").asText());
+                }
+                
+                // CoinGecko devuelve: { "bitcoin": { "eur": 60000 } }
+                // Buscar la clave correcta del símbolo
+                String coinGeckoId = coinGeckoService.convertSymbolToCoinGeckoId(symbol);
+                System.out.println("🔍 Buscando ID de CoinGecko: " + coinGeckoId);
+                
+                if (root.has(coinGeckoId)) {
+                    JsonNode cryptoData = root.get(coinGeckoId);
+                    String currencyKey = market.toLowerCase();
+                    
+                    if (cryptoData.has(currencyKey)) {
+                        Double price = cryptoData.get(currencyKey).asDouble();
+                        System.out.println("✅ Precio actual obtenido de CoinGecko: " + symbol + " = " + price + " " + market);
+                        
+                        // Guardar o actualizar en BD (usar findAndUpdate, no save directo)
+                        Optional<CryptoPrice> existingPrice = cryptoPriceRepository.findBySymbolAndMarket(symbol, market);
+                        if (existingPrice.isPresent()) {
+                            // Actualizar precio existente
+                            CryptoPrice existing = existingPrice.get();
+                            existing.setPrice(price);
+                            cryptoPriceRepository.save(existing);
+                            System.out.println("🔄 Precio actualizado en BD para " + symbol);
+                        } else {
+                            // Crear nuevo registro
+                            CryptoPrice cryptoPrice = new CryptoPrice(symbol, market, price);
+                            cryptoPriceRepository.save(cryptoPrice);
+                            System.out.println("💾 Nuevo precio guardado en BD para " + symbol);
+                        }
+                        
+                        return price;
+                    } else {
+                        System.err.println("❌ No encontrada moneda '" + currencyKey + "' en respuesta. Keys disponibles: " + cryptoData.fieldNames().next());
+                    }
+                } else {
+                    System.err.println("❌ No encontrado símbolo '" + coinGeckoId + "' en respuesta. Keys disponibles: " + root.fieldNames().next());
+                }
+            } catch (Exception e) {
+                System.err.println("⚠️ No se pudo obtener precio de CoinGecko: " + e.getClass().getSimpleName() + " - " + e.getMessage());
+                e.printStackTrace();
+                // Continuar con fallback a BD
+            }
+
+            // 2. FALLBACK: Si CoinGecko falla, usar precio en caché de BD
+            System.out.println("🔄 Usando precio en caché de BD como fallback...");
             Optional<CryptoPrice> dbPrice = cryptoPriceRepository.findBySymbolAndMarket(symbol, market);
             if (dbPrice.isPresent()) {
-                System.out.println("Precio obtenido de BD local: " + symbol + " = " + dbPrice.get().getPrice());
-                return dbPrice.get().getPrice();
+                Double cachedPrice = dbPrice.get().getPrice();
+                System.out.println("⚠️ Usando precio en caché (puede estar desactualizado): " + symbol + " = " + cachedPrice);
+                return cachedPrice;
             }
 
-            // 2. Si no está en BD, intentar obtener de la API
-            System.out.println("Precio no encontrado en BD, intentando obtener de API...");
-            String jsonResponse = cryptoService.llamarAPIExterna(symbol, market);
-            
-            // 3. Parsear la respuesta JSON
-            ObjectMapper mapper = new ObjectMapper();
-            JsonNode root = mapper.readTree(jsonResponse);
-
-            // Verificar si hay error de API
-            if (root.has("error")) {
-                String errorMsg = root.get("error").asText();
-                System.err.println("Error de API: " + errorMsg);
-                // Retornar null para que el servicio maneje el error
-                return null;
-            }
-
-            Double price = null;
-
-            // Intentar obtener de CURRENCY_EXCHANGE_RATE
-            if (root.has("Realtime Currency Exchange Rate")) {
-                JsonNode rate = root.get("Realtime Currency Exchange Rate");
-                if (rate.has("5. Exchange Rate")) {
-                    String priceStr = rate.get("5. Exchange Rate").asText();
-                    price = Double.parseDouble(priceStr);
-                }
-            }
-
-            // Intentar obtener de DIGITAL_CURRENCY_DAILY (Time Series)
-            if (price == null && root.has("Time Series (Digital Currency Daily)")) {
-                JsonNode timeSeries = root.get("Time Series (Digital Currency Daily)");
-                Iterator<String> fieldNames = timeSeries.fieldNames();
-                if (fieldNames.hasNext()) {
-                    String latestDate = fieldNames.next();
-                    JsonNode latestData = timeSeries.get(latestDate);
-                    if (latestData.has("4. close")) {
-                        String priceStr = latestData.get("4. close").asText();
-                        price = Double.parseDouble(priceStr);
-                    }
-                }
-            }
-
-            // 4. Si se obtuvo el precio, guardarlo en BD
-            if (price != null) {
-                CryptoPrice cryptoPrice = new CryptoPrice(symbol, market, price);
-                cryptoPriceRepository.save(cryptoPrice);
-                System.out.println("Precio guardado en BD: " + symbol + " = " + price);
-                return price;
-            }
-
-            System.err.println("No se pudo extraer el precio de la respuesta de API");
+            System.err.println("❌ No se encontró precio ni en CoinGecko ni en BD");
             return null;
             
         } catch (Exception e) {
-            System.err.println("Error al obtener precio: " + e.getMessage());
+            System.err.println("❌ Error crítico al obtener precio: " + e.getMessage());
             e.printStackTrace();
             return null;
         }
