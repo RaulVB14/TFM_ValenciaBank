@@ -100,4 +100,18 @@ public class PortfolioController {
             return ResponseEntity.notFound().build();
         }
     }
+
+    // GET: Obtener portafolio DETALLADO con precios actuales y ganancia/pérdida
+    @GetMapping("/detailed/{userId}")
+    public ResponseEntity<Map<String, Object>> getDetailedPortfolio(@PathVariable Long userId) {
+        try {
+            Map<String, Object> portfolio = portfolioService.getDetailedPortfolio(userId);
+            return ResponseEntity.ok(portfolio);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "success", false,
+                    "error", "Error al obtener portafolio: " + e.getMessage()
+            ));
+        }
+    }
 }

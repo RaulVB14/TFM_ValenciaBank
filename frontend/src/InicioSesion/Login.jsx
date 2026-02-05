@@ -45,6 +45,7 @@ function Login() {
             const data = await response.json(); // Parsea la respuesta como JSON
             console.log("Datos recibidos:", data);
             localStorage.setItem("token", data.token); // Accede al token dentro del objeto JSON
+            localStorage.setItem("dni", DNI.trim()); // Guardar DNI para futuras referencias
             navigate("/home");
         } catch (error) {
             console.error("Error en el login:", error);

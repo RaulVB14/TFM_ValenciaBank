@@ -7,6 +7,7 @@ import Profile from "./funciones/Profile"
 import Summary from "./funciones/Summary"
 import Deposit from "./funciones/Deposit"
 import Transfer from "./funciones/Transfer"
+import Portfolio from "./funciones/Portfolio"
 
 //DE AQUI SALEN TODAS LAS RUTAS DE LA PAGINA WEB
 export function App() {
@@ -21,6 +22,7 @@ export function App() {
         <Route path ="/home/Summary" element={<Summary/>}/>
         <Route path ="/home/Deposit" element={<Deposit/>}/>
         <Route path ="/home/Transfer" element={<Transfer/>}/>
+        <Route path ="/home/Portfolio" element={<Portfolio/>}/>
       </Routes>
     </Router>
   );

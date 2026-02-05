@@ -5,7 +5,7 @@ import axios from "axios";
 import CryptoChart from "./components/CryptoGraphic.jsx";
 import IndexedFundsGraphic from "./components/IndexedFundsGraphic.jsx";
 import BuyCryptoForm from "./components/BuyCryptoForm.jsx";
-import { FaSignOutAlt, FaUser, FaMoneyBillAlt, FaExchangeAlt, FaHistory } from "react-icons/fa";
+import { FaSignOutAlt, FaUser, FaMoneyBillAlt, FaExchangeAlt, FaHistory, FaChartPie } from "react-icons/fa";
 
 function Home() {
     const navigate = useNavigate();
@@ -29,6 +29,7 @@ function Home() {
     const handleDeposit = () => navigate("/home/Deposit");
     const handleTransfer = () => navigate("/home/Transfer");
     const handleSummary = () => navigate("/home/Summary");
+    const handlePortfolio = () => navigate("/home/Portfolio");
 
     // Cargar datos del usuario solo al montar
     useEffect(() => {
@@ -315,6 +316,9 @@ function Home() {
                 </button>
                 <button className="icon-btn" onClick={handleSummary} title="Histórico">
                     <FaHistory />
+                </button>
+                <button className="icon-btn" onClick={handlePortfolio} title="Portafolio">
+                    <FaChartPie />
                 </button>
             </div>
 
