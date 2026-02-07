@@ -9,6 +9,7 @@ import com.valenciaBank.valenciaBank.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.*;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -191,6 +192,7 @@ public class PortfolioService {
     /**
      * Obtener precio actual de un símbolo (helper privado)
      * Primero intenta CoinGecko, si falla busca en BD
+     * Siempre guarda el precio más reciente en BD para mantener el fallback actualizado
      */
     private Double getCurrentPriceForSymbol(String symbol, String market) {
         try {
@@ -212,6 +214,22 @@ public class PortfolioService {
                 
                 Double price = Double.parseDouble(priceStr);
                 if (price > 0) {
+                    // Guardar/actualizar precio en BD para mantener fallback siempre fresco
+                    try {
+                        Optional<CryptoPrice> existing = cryptoPriceRepository.findBySymbolAndMarket(symbol.toUpperCase(), market.toUpperCase());
+                        if (existing.isPresent()) {
+                            CryptoPrice cp = existing.get();
+                            cp.setPrice(price);
+                            cp.setLastUpdated(java.time.LocalDateTime.now());
+                            cryptoPriceRepository.save(cp);
+                        } else {
+                            CryptoPrice cp = new CryptoPrice(symbol.toUpperCase(), market.toUpperCase(), price);
+                            cryptoPriceRepository.save(cp);
+                        }
+                        System.out.println("💾 Precio actualizado en BD para " + symbol + ": " + price + " " + market);
+                    } catch (Exception dbErr) {
+                        System.err.println("⚠️ No se pudo guardar precio en BD: " + dbErr.getMessage());
+                    }
                     return price;
                 }
             }
@@ -221,10 +239,10 @@ public class PortfolioService {
         
         // Fallback: buscar en base de datos
         try {
-            Optional<CryptoPrice> dbPrice = cryptoPriceRepository.findBySymbolAndMarket(symbol, market);
+            Optional<CryptoPrice> dbPrice = cryptoPriceRepository.findBySymbolAndMarket(symbol.toUpperCase(), market.toUpperCase());
             if (dbPrice.isPresent()) {
                 Double price = dbPrice.get().getPrice();
-                System.out.println("Usando precio de BD para " + symbol + ": " + price + " " + market);
+                System.out.println("📦 Usando precio de BD para " + symbol + ": " + price + " " + market + " (último update: " + dbPrice.get().getLastUpdated() + ")");
                 return price;
             }
         } catch (Exception e) {
@@ -232,4 +250,172 @@ public class PortfolioService {
         }
         
         return 0.0;
-    }}
+    }
+
+    /**
+     * Obtener historial del valor del portfolio para gráficos
+     * Calcula el valor total del portfolio en cada punto temporal usando precios históricos
+     */
+    public Map<String, Object> getPortfolioHistory(Long userId, int days) {
+        try {
+            Optional<User> user = userRepository.findById(userId);
+            if (user.isEmpty()) {
+                throw new RuntimeException("Usuario no encontrado");
+            }
+
+            List<CryptoPurchase> portfolio = getPortfolio(userId);
+            if (portfolio.isEmpty()) {
+                return Map.of(
+                    "success", true,
+                    "dates", List.of(),
+                    "values", List.of(),
+                    "invested", List.of()
+                );
+            }
+
+            // Agrupar compras por símbolo
+            Map<String, List<CryptoPurchase>> groupedBySymbol = portfolio.stream()
+                    .collect(Collectors.groupingBy(CryptoPurchase::getSymbol));
+
+            // Obtener precios históricos de cada símbolo
+            Map<String, List<List<Number>>> historicalPrices = new LinkedHashMap<>();
+            for (String symbol : groupedBySymbol.keySet()) {
+                try {
+                    String historyJson = coinGeckoService.getCryptoHistory(symbol, days, "EUR");
+                    List<List<Number>> prices = parsePricesFromJson(historyJson);
+                    if (prices != null && !prices.isEmpty()) {
+                        historicalPrices.put(symbol, prices);
+                    }
+                } catch (Exception e) {
+                    System.err.println("Error obteniendo historial para " + symbol + ": " + e.getMessage());
+                }
+            }
+
+            if (historicalPrices.isEmpty()) {
+                return Map.of("success", false, "error", "No se pudieron obtener precios históricos");
+            }
+
+            // Encontrar timestamps comunes (usar los del primer símbolo como referencia)
+            List<List<Number>> referencePrices = historicalPrices.values().iterator().next();
+            
+            List<String> dates = new ArrayList<>();
+            List<Double> portfolioValues = new ArrayList<>();
+            List<Double> investedValues = new ArrayList<>();
+
+            for (List<Number> dataPoint : referencePrices) {
+                long timestamp = dataPoint.get(0).longValue();
+                LocalDateTime pointDate = LocalDateTime.ofInstant(
+                    Instant.ofEpochMilli(timestamp), ZoneId.systemDefault()
+                );
+
+                double totalValue = 0.0;
+                double totalInvested = 0.0;
+
+                for (Map.Entry<String, List<CryptoPurchase>> entry : groupedBySymbol.entrySet()) {
+                    String symbol = entry.getKey();
+                    List<CryptoPurchase> purchases = entry.getValue();
+
+                    // Calcular cantidad y coste acumulado hasta este punto temporal
+                    double quantityAtTime = 0.0;
+                    double investedAtTime = 0.0;
+                    for (CryptoPurchase purchase : purchases) {
+                        if (!purchase.getPurchaseDate().isAfter(pointDate)) {
+                            quantityAtTime += purchase.getQuantity();
+                            investedAtTime += purchase.getQuantity() * purchase.getPurchasePrice();
+                        }
+                    }
+
+                    if (quantityAtTime > 0) {
+                        // Buscar el precio más cercano para este símbolo en este timestamp
+                        double priceAtTime = findClosestPrice(historicalPrices.get(symbol), timestamp);
+                        totalValue += quantityAtTime * priceAtTime;
+                        totalInvested += investedAtTime;
+                    }
+                }
+
+                dates.add(String.valueOf(timestamp));
+                portfolioValues.add(Math.round(totalValue * 100.0) / 100.0);
+                investedValues.add(Math.round(totalInvested * 100.0) / 100.0);
+            }
+
+            Map<String, Object> result = new LinkedHashMap<>();
+            result.put("success", true);
+            result.put("dates", dates);
+            result.put("values", portfolioValues);
+            result.put("invested", investedValues);
+            return result;
+
+        } catch (Exception e) {
+            System.err.println("Error al obtener historial del portfolio: " + e.getMessage());
+            e.printStackTrace();
+            return Map.of("success", false, "error", "Error: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Parsear precios desde JSON de CoinGecko
+     * Formato: {"prices":[[timestamp,price],[timestamp,price],...]}
+     */
+    @SuppressWarnings("unchecked")
+    private List<List<Number>> parsePricesFromJson(String json) {
+        try {
+            if (json == null || json.contains("\"error\"")) return null;
+            
+            // Buscar el array "prices"
+            int pricesIndex = json.indexOf("\"prices\"");
+            if (pricesIndex < 0) return null;
+            
+            int arrayStart = json.indexOf("[[", pricesIndex);
+            int arrayEnd = json.indexOf("]]", arrayStart) + 2;
+            if (arrayStart < 0 || arrayEnd < 2) return null;
+            
+            String pricesStr = json.substring(arrayStart, arrayEnd);
+            
+            // Parsear manualmente los pares [timestamp, price]
+            List<List<Number>> result = new ArrayList<>();
+            int i = 0;
+            while (i < pricesStr.length()) {
+                int pairStart = pricesStr.indexOf("[", i + 1);
+                if (pairStart < 0) break;
+                int pairEnd = pricesStr.indexOf("]", pairStart);
+                if (pairEnd < 0) break;
+                
+                String pair = pricesStr.substring(pairStart + 1, pairEnd);
+                String[] parts = pair.split(",");
+                if (parts.length == 2) {
+                    try {
+                        long ts = Long.parseLong(parts[0].trim());
+                        double price = Double.parseDouble(parts[1].trim());
+                        result.add(List.of(ts, price));
+                    } catch (NumberFormatException ignored) {}
+                }
+                i = pairEnd + 1;
+            }
+            
+            return result;
+        } catch (Exception e) {
+            System.err.println("Error parseando precios: " + e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Encontrar el precio más cercano a un timestamp dado
+     */
+    private double findClosestPrice(List<List<Number>> prices, long targetTimestamp) {
+        if (prices == null || prices.isEmpty()) return 0.0;
+        
+        double closestPrice = prices.get(0).get(1).doubleValue();
+        long minDiff = Long.MAX_VALUE;
+        
+        for (List<Number> dataPoint : prices) {
+            long diff = Math.abs(dataPoint.get(0).longValue() - targetTimestamp);
+            if (diff < minDiff) {
+                minDiff = diff;
+                closestPrice = dataPoint.get(1).doubleValue();
+            }
+        }
+        
+        return closestPrice;
+    }
+}

@@ -9,6 +9,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
+import java.util.Map;
+import java.util.LinkedHashMap;
 import static com.valenciaBank.valenciaBank.utils.Methods.generateAccountNumber;
 import com.valenciaBank.valenciaBank.utils.*;
 
@@ -66,5 +68,49 @@ public class UserController {
     @GetMapping("/exists/{dni}")
     public boolean existsByDni(@PathVariable String dni) {
         return userService.existsByDni(dni);
+    }
+
+    @PutMapping("/update/{dni}")
+    public ResponseEntity<?> updateUser(@PathVariable String dni, @RequestBody Map<String, String> updates) {
+        try {
+            User user = userService.getUser(dni);
+            if (user == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Usuario no encontrado"));
+            }
+
+            // Actualizar solo campos permitidos
+            if (updates.containsKey("username")) {
+                user.setUsername(updates.get("username"));
+            }
+            if (updates.containsKey("nombre")) {
+                user.setNombre(updates.get("nombre"));
+            }
+            if (updates.containsKey("apellidos")) {
+                user.setApellidos(updates.get("apellidos"));
+            }
+            if (updates.containsKey("email")) {
+                user.setEmail(updates.get("email"));
+            }
+            if (updates.containsKey("telefono")) {
+                user.setTelefono(updates.get("telefono"));
+            }
+            if (updates.containsKey("direccion")) {
+                user.setDireccion(updates.get("direccion"));
+            }
+            if (updates.containsKey("password") && updates.get("password") != null && !updates.get("password").isEmpty()) {
+                user.setPassword(updates.get("password"));
+            }
+
+            User saved = userService.saveUser(user);
+
+            Map<String, Object> response = new LinkedHashMap<>();
+            response.put("success", true);
+            response.put("message", "Datos actualizados correctamente");
+            response.put("user", saved);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("error", "Error al actualizar: " + e.getMessage()));
+        }
     }
 }

@@ -5,7 +5,7 @@ import axios from "axios";
 import CryptoChart from "./components/CryptoGraphic.jsx";
 import IndexedFundsGraphic from "./components/IndexedFundsGraphic.jsx";
 import BuyCryptoForm from "./components/BuyCryptoForm.jsx";
-import { FaSignOutAlt, FaUser, FaMoneyBillAlt, FaExchangeAlt, FaHistory, FaChartPie } from "react-icons/fa";
+import { FaSignOutAlt, FaUser, FaMoneyBillAlt, FaExchangeAlt, FaHistory, FaChartPie, FaChevronRight, FaShoppingCart } from "react-icons/fa";
 
 function Home() {
     const navigate = useNavigate();
@@ -22,7 +22,13 @@ function Home() {
     const [fundTimeRange, setFundTimeRange] = useState("1"); // 1 día: máxima precisión
     const [lastFundFetchTime, setLastFundFetchTime] = useState(0); // Para controlar rate limit
     const [fundErrorMessage, setFundErrorMessage] = useState("");
-    const [finnhubDisabled, setFinnhubDisabled] = useState(false); // Deshabilitar API si da 403 repetidamente
+    const [finnhubDisabled, setFinnhubDisabled] = useState(false); // Flag de error persistente de API
+    const [fundCurrency, setFundCurrency] = useState("USD");
+
+    // Estado para el panel de saldos desplegable
+    const [showBalanceDetail, setShowBalanceDetail] = useState(false);
+    const [investedAmount, setInvestedAmount] = useState(0);
+    const [showBuyModal, setShowBuyModal] = useState(false);
 
     const Exit = () => navigate("/");
     const handleProfile = () => navigate("/home/Profile");
@@ -31,9 +37,10 @@ function Home() {
     const handleSummary = () => navigate("/home/Summary");
     const handlePortfolio = () => navigate("/home/Portfolio");
 
-    // Cargar datos del usuario solo al montar
+    // Cargar datos del usuario y portafolio al montar
     useEffect(() => {
         fetchUserData();
+        fetchInvestedAmount();
     }, []);
 
     // Cargar datos de crypto solo cuando cambian timeRange o selectedCrypto
@@ -64,10 +71,24 @@ function Home() {
         }
     }, [timeRange, selectedCrypto]);
 
-    // ⚠️ Finnhub deshabilitado - se mantiene el gráfico pero sin llamadas a API
+    // Cargar datos de ETFs/Fondos cuando cambian fundTimeRange o selectedFund
     useEffect(() => {
-        // No hacer nada - Finnhub está deshabilitado
-        console.log("⚠️ Gráfico de ETFs deshabilitado - sin llamadas a API");
+        fetchFundData();
+        setLastFundFetchTime(Date.now());
+
+        // Auto-refresh cada 10 minutos para intradía
+        if (fundTimeRange === "1") {
+            const interval = setInterval(() => {
+                const timeSinceLastFetch = Date.now() - lastFundFetchTime;
+                const tenMinutes = 10 * 60 * 1000;
+                if (timeSinceLastFetch >= tenMinutes) {
+                    console.log("🔄 Refresh real de ETFs (10 minutos)...");
+                    fetchFundData();
+                    setLastFundFetchTime(Date.now());
+                }
+            }, 60000);
+            return () => clearInterval(interval);
+        }
     }, [fundTimeRange, selectedFund]);
 
     const fetchUserData = async () => {
@@ -149,7 +170,8 @@ function Home() {
             console.log(`📊 Filtrado: ${data.prices.length} datos → ${filteredPrices.length} últimas 24h`);
         }
         
-        // Determinar el formato de fecha según el rango
+        // Determinar el formato de fecha según el rango (hora de Madrid)
+        const madridTZ = 'Europe/Madrid';
         let dateFormat;
         if (days === 1) {
             // Para 1 día: mostrar hora:minuto (HH:MM) - datos cada hora
@@ -157,7 +179,8 @@ function Home() {
                 const date = new Date(timestamp);
                 return date.toLocaleTimeString('es-ES', { 
                     hour: '2-digit', 
-                    minute: '2-digit'
+                    minute: '2-digit',
+                    timeZone: madridTZ
                 });
             };
         } else if (days === 7) {
@@ -166,10 +189,12 @@ function Home() {
                 const date = new Date(timestamp);
                 return date.toLocaleDateString('es-ES', { 
                     day: '2-digit', 
-                    month: '2-digit' 
+                    month: '2-digit',
+                    timeZone: madridTZ
                 }) + ' ' + date.toLocaleTimeString('es-ES', { 
                     hour: '2-digit', 
-                    minute: '2-digit' 
+                    minute: '2-digit',
+                    timeZone: madridTZ
                 });
             };
         } else {
@@ -178,7 +203,8 @@ function Home() {
                 const date = new Date(timestamp);
                 return date.toLocaleDateString('es-ES', { 
                     day: '2-digit', 
-                    month: '2-digit' 
+                    month: '2-digit',
+                    timeZone: madridTZ
                 });
             };
         }
@@ -189,11 +215,36 @@ function Home() {
         setChartData({ dates, prices });
     };
 
+    const fetchInvestedAmount = async () => {
+        try {
+            const dni = localStorage.getItem("dni");
+            const token = localStorage.getItem("token");
+            if (!dni || !token) return;
+
+            const userResponse = await axios.get(`http://localhost:8080/user/get/${dni}`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+
+            if (!userResponse.data?.id) return;
+
+            const response = await axios.get(
+                `http://localhost:8080/portfolio/detailed/${userResponse.data.id}`,
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+
+            if (response.data.success && response.data.summary) {
+                setInvestedAmount(response.data.summary.totalCurrentValue);
+            }
+        } catch (err) {
+            console.error("Error al obtener datos de inversión:", err);
+        }
+    };
+
     const handleCryptoChange = (event) => {
         setSelectedCrypto(event.target.value);
     };
 
-    // ✅ Obtener datos de Fondos Indexados y ETFs
+    // Obtener datos de Fondos Indexados y ETFs (Yahoo Finance)
     const fetchFundData = async () => {
         console.log("Obteniendo datos de fondo:", selectedFund);
         setFundErrorMessage("");
@@ -204,42 +255,28 @@ function Home() {
             );
 
             if (response.data.error) {
-                console.error("❌ Error en respuesta de Finnhub:", response.data.error);
-                let errorMsg = response.data.error;
-                
-                // Mejorar mensaje de error para símbolos no soportados
-                if (response.data.error.includes("403") || response.data.error.includes("access")) {
-                    errorMsg = `❌ Finnhub no disponible. API deshabilitada para evitar saturar la consola.`;
-                    setFinnhubDisabled(true); // Deshabilitar para evitar más llamadas
-                    console.warn("⚠️ Finnhub deshabilitado - acceso denegado 403");
-                }
-                
-                setFundErrorMessage(errorMsg);
+                console.error("Error en respuesta:", response.data.error);
+                setFundErrorMessage(response.data.error);
                 setFundChartData({ dates: [], prices: [] });
                 return;
             }
 
             if (response.data && response.data.c && response.data.c.length > 0) {
                 processFundData(response.data);
+                if (response.data.currency) {
+                    setFundCurrency(response.data.currency);
+                }
             } else {
                 console.error("Formato inválido:", response.data);
                 setFundErrorMessage("No hay datos disponibles para este fondo. Intenta con otro.");
                 setFundChartData({ dates: [], prices: [] });
             }
         } catch (error) {
-            console.error("❌ Error al obtener datos de Finnhub:", error.message);
-            
-            let errorMsg = "Finnhub no disponible.";
-            if (error.response?.status === 403) {
-                errorMsg = `❌ Finnhub deshabilitado: acceso denegado (403)`;
-                setFinnhubDisabled(true); // Deshabilitar para evitar más llamadas
-                console.warn("⚠️ API Finnhub deshabilitada después de recibir 403");
-            } else if (error.response?.status === 429) {
-                errorMsg = `❌ Rate limit de Finnhub. API deshabilitada temporalmente.`;
-                setFinnhubDisabled(true);
-                console.warn("⚠️ API Finnhub deshabilitada por rate limit (429)");
+            console.error("Error al obtener datos de ETF:", error.message);
+            let errorMsg = "Error al obtener datos del fondo.";
+            if (error.response?.status === 429) {
+                errorMsg = "Rate limit alcanzado. Intenta de nuevo en unos segundos.";
             }
-            
             setFundErrorMessage(errorMsg);
             setFundChartData({ dates: [], prices: [] });
         }
@@ -252,51 +289,63 @@ function Home() {
             return;
         }
 
-        // Determinar el formato de fecha según el rango
+        // Determinar el formato de fecha según el rango (hora de Madrid)
         const days = parseInt(fundTimeRange);
+        const madridTZ = 'Europe/Madrid';
         let dateFormat;
         if (days === 1) {
-            // Para 1 día: mostrar hora:minuto:segundo (HH:MM:SS) - tiempo real
+            // Para 1 día: datos cada 5 min, mostrar hora:minuto (HH:MM)
             dateFormat = (timestamp) => {
                 const date = new Date(timestamp * 1000);
                 return date.toLocaleTimeString('es-ES', { 
                     hour: '2-digit', 
                     minute: '2-digit',
-                    second: '2-digit'
+                    timeZone: madridTZ
                 });
             };
         } else if (days === 7) {
-            // Para 7 días: mostrar fecha y hora (DD/MM HH:MM)
+            // Para 7 días: datos cada 30 min, mostrar fecha y hora (DD/MM HH:MM)
             dateFormat = (timestamp) => {
                 const date = new Date(timestamp * 1000);
                 return date.toLocaleDateString('es-ES', { 
                     day: '2-digit', 
-                    month: '2-digit' 
+                    month: '2-digit',
+                    timeZone: madridTZ
                 }) + ' ' + date.toLocaleTimeString('es-ES', { 
                     hour: '2-digit', 
-                    minute: '2-digit' 
+                    minute: '2-digit',
+                    timeZone: madridTZ
                 });
             };
         } else {
-            // Para 30+ días: mostrar solo fecha (DD/MM)
+            // Para 30+ días: datos diarios, mostrar solo fecha (DD/MM)
             dateFormat = (timestamp) => {
                 const date = new Date(timestamp * 1000);
                 return date.toLocaleDateString('es-ES', { 
                     day: '2-digit', 
-                    month: '2-digit' 
+                    month: '2-digit',
+                    timeZone: madridTZ
                 });
             };
         }
 
-        const dates = data.t.map((timestamp) => dateFormat(timestamp));
-        const prices = data.c.map((price) => parseFloat(price));
+        // Filtrar timestamps futuros (Yahoo Finance envía datos de toda la sesión de trading)
+        const nowSeconds = Math.floor(Date.now() / 1000);
+        const validIndices = [];
+        for (let i = 0; i < data.t.length; i++) {
+            if (data.t[i] <= nowSeconds) {
+                validIndices.push(i);
+            }
+        }
+
+        const dates = validIndices.map((i) => dateFormat(data.t[i]));
+        const prices = validIndices.map((i) => parseFloat(data.c[i]));
 
         setFundChartData({ dates, prices });
     };
 
     const handleFundChange = (event) => {
-        // ⚠️ DESHABILITADO - Finnhub no disponible
-        // setSelectedFund(event.target.value);
+        setSelectedFund(event.target.value);
     };
 
     return (
@@ -322,16 +371,63 @@ function Home() {
                 </button>
             </div>
 
-            <div className="balance-container">
-                {userData && userData.account ? (
-                    <div className="balance-info">
-                        <p>Numero de cuenta: <strong>{userData.account.number}</strong></p>
-                        <p className="balance-amount">Saldo: {userData.account.balance} €</p>
-                    </div>
-                ) : (
-                    <p>Cargando datos...</p>
-                )}
+            <div className="balance-wrapper">
+                <div className="balance-container">
+                    {userData && userData.account ? (
+                        <div className="balance-info">
+                            <p>Numero de cuenta: <strong>{userData.account.number}</strong></p>
+                            <button
+                                className={`balance-toggle-btn ${showBalanceDetail ? 'open' : ''}`}
+                                onClick={() => setShowBalanceDetail(!showBalanceDetail)}
+                                title="Ver detalle de saldos"
+                            >
+                                <FaChevronRight />
+                            </button>
+                        </div>
+                    ) : (
+                        <p>Cargando datos...</p>
+                    )}
+                </div>
+
+                <div className={`balance-detail-panel ${showBalanceDetail ? 'visible' : ''}`}>
+                    {userData && userData.account && (
+                        <>
+                            <div className="balance-detail-item">
+                                <span className="balance-detail-label">Dinero líquido</span>
+                                <span className="balance-detail-value liquid">{userData.account.balance.toFixed(2)} €</span>
+                            </div>
+                            <div className="balance-detail-divider"></div>
+                            <div className="balance-detail-item">
+                                <span className="balance-detail-label">Invertido</span>
+                                <span className="balance-detail-value invested">{investedAmount.toFixed(2)} €</span>
+                            </div>
+                            <div className="balance-detail-divider"></div>
+                            <div className="balance-detail-item total">
+                                <span className="balance-detail-label">Total</span>
+                                <span className="balance-detail-value">{(userData.account.balance + investedAmount).toFixed(2)} €</span>
+                            </div>
+                        </>
+                    )}
+                </div>
+
+                <button className="buy-product-btn" onClick={() => setShowBuyModal(true)}>
+                    <FaShoppingCart />
+                    <span>Comprar Crypto</span>
+                </button>
             </div>
+
+            {/* Modal de compra */}
+            {showBuyModal && (
+                <div className="buy-modal-overlay" onClick={() => setShowBuyModal(false)}>
+                    <div className="buy-modal-content" onClick={(e) => e.stopPropagation()}>
+                        <button className="buy-modal-close" onClick={() => setShowBuyModal(false)}>×</button>
+                        <BuyCryptoForm userData={userData} onPurchaseSuccess={(data) => {
+                            fetchUserData();
+                            fetchInvestedAmount();
+                        }} />
+                    </div>
+                </div>
+            )}
 
             <div className="graphics-wrapper">
                 <div className="crypto-graphic-container">
@@ -436,11 +532,8 @@ function Home() {
                 {/* ✅ NUEVA SECCIÓN: FONDOS INDEXADOS Y ETFS */}
                 <div className="crypto-graphic-container">
                     <h1>Fondos Indexados & ETFs</h1>
-                    <p style={{ color: "orange", textAlign: "center", padding: "20px", fontSize: "14px" }}>
-                        ⚠️ Datos de ETFs deshabilitados temporalmente
-                    </p>
 
-                    <select value={selectedFund} onChange={handleFundChange} disabled>
+                    <select value={selectedFund} onChange={handleFundChange}>
                     <optgroup label="🌍 ETFs Globales">
                         <option value="VWRL">Vanguard FTSE All-World (VWRL)</option>
                         <option value="EUNL">iShares Core MSCI World (EUNL)</option>
@@ -453,8 +546,6 @@ function Home() {
                     </optgroup>
                     <optgroup label="🇪🇺 Europa">
                         <option value="VEUR">Vanguard FTSE Developed Europe (VEUR)</option>
-                        <option value="ECOS">iShares MSCI Spain (ECOS)</option>
-                        <option value="XESC">iShares MSCI Spain (XESC)</option>
                     </optgroup>
                     <optgroup label="📊 Índices Principales">
                         <option value="^IBEX">IBEX 35 (España)</option>
@@ -469,7 +560,6 @@ function Home() {
                         <option value="XLE">Energía (XLE)</option>
                     </optgroup>
                     <optgroup label="🎯 Dividendos">
-                        <option value="VYME">Vanguard Emerging Markets High Dividend (VYME)</option>
                         <option value="IUSA">iShares Core S&P U.S. Value (IUSA)</option>
                     </optgroup>
                 </select>
@@ -509,12 +599,10 @@ function Home() {
                     </div>
                 )}
 
-                <IndexedFundsGraphic symbol={selectedFund} dates={fundChartData.dates} prices={fundChartData.prices} />
+                <IndexedFundsGraphic symbol={selectedFund} dates={fundChartData.dates} prices={fundChartData.prices} currency={fundCurrency} />
                 </div>
             </div>
 
-            {/* 🛒 FORMULARIO DE COMPRA DE CRIPTOS */}
-            <BuyCryptoForm userData={userData} onPurchaseSuccess={() => fetchUserData()} />
         </div>
     );
 }

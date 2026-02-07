@@ -4,6 +4,8 @@ import com.valenciaBank.valenciaBank.model.CryptoHistoryCache;
 import com.valenciaBank.valenciaBank.repository.CryptoHistoryCacheRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.Optional;
@@ -15,10 +17,33 @@ public class CoinGeckoService {
     private final CryptoHistoryCacheRepository cacheRepository;
     private static final String COINGECKO_API_URL = "https://api.coingecko.com/api/v3";
 
+    // Control de rate limit: tiempo mínimo entre llamadas a CoinGecko (ms)
+    private static final long MIN_REQUEST_INTERVAL_MS = 1500;
+    private static long lastRequestTime = 0;
+    private static boolean rateLimitHit = false;
+
     @Autowired
     public CoinGeckoService(RestTemplate restTemplate, CryptoHistoryCacheRepository cacheRepository) {
         this.restTemplate = restTemplate;
         this.cacheRepository = cacheRepository;
+    }
+
+    /**
+     * Esperar si es necesario para respetar el rate limit de CoinGecko
+     */
+    private synchronized void waitForRateLimit() {
+        long now = System.currentTimeMillis();
+        long elapsed = now - lastRequestTime;
+        if (elapsed < MIN_REQUEST_INTERVAL_MS) {
+            try {
+                long waitTime = MIN_REQUEST_INTERVAL_MS - elapsed;
+                System.out.println("⏳ Esperando " + waitTime + "ms para respetar rate limit de CoinGecko...");
+                Thread.sleep(waitTime);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
+        lastRequestTime = System.currentTimeMillis();
     }
 
     /**
@@ -28,7 +53,13 @@ public class CoinGeckoService {
      * @return JSON con datos de la criptomoneda
      */
     public String getCryptoData(String symbol, String vsCurrency) {
+        // Si ya estamos en rate limit, no intentar
+        if (rateLimitHit) {
+            System.out.println("⚠️ Rate limit activo, saltando llamada a CoinGecko para " + symbol);
+            return "{\"error\": \"Rate limit activo\"}";
+        }
         try {
+            waitForRateLimit();
             String cryptoId = convertSymbolToCoinGeckoId(symbol);
             String url = String.format(
                 "%s/simple/price?ids=%s&vs_currencies=%s&include_market_cap=true&include_24hr_vol=true&include_24hr_change=true",
@@ -38,10 +69,20 @@ public class CoinGeckoService {
             );
 
             String response = restTemplate.getForObject(url, String.class);
+            rateLimitHit = false; // Reset si la llamada fue exitosa
             System.out.println("CoinGecko response para " + symbol + ": " + (response != null ? response.substring(0, Math.min(100, response.length())) : "null"));
             return response;
+        } catch (HttpClientErrorException.TooManyRequests e) {
+            rateLimitHit = true;
+            System.err.println("⚠️ 429 Too Many Requests para " + symbol + " - usando fallback");
+            return "{\"error\": \"Rate limit exceeded\"}";
         } catch (Exception e) {
-            System.err.println("Error al obtener datos de CoinGecko para " + symbol + ": " + e.getMessage());
+            if (e.getMessage() != null && e.getMessage().contains("429")) {
+                rateLimitHit = true;
+                System.err.println("⚠️ 429 Too Many Requests para " + symbol + " - usando fallback");
+            } else {
+                System.err.println("Error al obtener datos de CoinGecko para " + symbol + ": " + e.getMessage());
+            }
             return "{\"error\": \"Error al obtener datos de CoinGecko\"}";
         }
     }
@@ -55,13 +96,14 @@ public class CoinGeckoService {
      * @param vsCurrency Moneda de referencia
      * @return JSON con datos históricos
      */
+    @Transactional
     public String getCryptoHistory(String symbol, int days, String vsCurrency) {
         try {
             String symbolUpper = symbol.toUpperCase();
             String currencyUpper = vsCurrency.toUpperCase();
             
             // 1️⃣ Intentar obtener caché exacto
-            Optional<CryptoHistoryCache> cachedData = cacheRepository.findBySymbolAndDaysAndCurrency(
+            Optional<CryptoHistoryCache> cachedData = cacheRepository.findFirstBySymbolAndDaysAndCurrency(
                 symbolUpper,
                 days,
                 currencyUpper
@@ -76,34 +118,26 @@ public class CoinGeckoService {
             }
 
             // 2️⃣ Si no hay caché exacto, buscar caché más grande (fallback inteligente)
-            // Orden de preferencia: 30D → 7D → 1D
             System.out.println("🔍 Caché no encontrado para " + days + " días, buscando fallback...");
             
             Optional<CryptoHistoryCache> fallbackCache = Optional.empty();
             int fallbackDays = 0;
             
-            // Si pide 1D, buscar caché de 7D o 30D
             if (days == 1) {
-                fallbackCache = cacheRepository.findBySymbolAndDaysAndCurrency(symbolUpper, 7, currencyUpper);
+                fallbackCache = cacheRepository.findFirstBySymbolAndDaysAndCurrency(symbolUpper, 7, currencyUpper);
                 fallbackDays = 7;
                 if (!fallbackCache.isPresent()) {
-                    fallbackCache = cacheRepository.findBySymbolAndDaysAndCurrency(symbolUpper, 30, currencyUpper);
+                    fallbackCache = cacheRepository.findFirstBySymbolAndDaysAndCurrency(symbolUpper, 30, currencyUpper);
                     fallbackDays = 30;
                 }
-            }
-            // Si pide 7D, buscar caché de 30D
-            else if (days == 7) {
-                fallbackCache = cacheRepository.findBySymbolAndDaysAndCurrency(symbolUpper, 30, currencyUpper);
+            } else if (days == 7) {
+                fallbackCache = cacheRepository.findFirstBySymbolAndDaysAndCurrency(symbolUpper, 30, currencyUpper);
                 fallbackDays = 30;
-            }
-            // Si pide 30D, no hay fallback (es el máximo que cachean)
-            // Si pide 90D, 365D, etc., también usan 30D como fallback si existe
-            else if (days > 30) {
-                fallbackCache = cacheRepository.findBySymbolAndDaysAndCurrency(symbolUpper, 30, currencyUpper);
+            } else if (days > 30) {
+                fallbackCache = cacheRepository.findFirstBySymbolAndDaysAndCurrency(symbolUpper, 30, currencyUpper);
                 fallbackDays = 30;
             }
 
-            // Si encontramos caché de fallback válido, usarlo
             if (fallbackCache.isPresent()) {
                 CryptoHistoryCache cache = fallbackCache.get();
                 if (cache.isValid()) {
@@ -112,7 +146,17 @@ public class CoinGeckoService {
                 }
             }
 
-            // 3️⃣ Si no hay caché en ningún rango, llamar a CoinGecko
+            // 3️⃣ Si estamos en rate limit, usar caché expirada antes de intentar la API
+            if (rateLimitHit) {
+                String expiredData = getExpiredCacheData(symbolUpper, days, currencyUpper);
+                if (expiredData != null) {
+                    System.out.println("📦 Rate limit activo → usando caché expirada para " + symbol);
+                    return expiredData;
+                }
+            }
+
+            // 4️⃣ Llamar a CoinGecko API
+            waitForRateLimit();
             System.out.println("🔄 Obteniendo datos históricos de CoinGecko para " + symbol + "...");
             String cryptoId = convertSymbolToCoinGeckoId(symbol);
             String url = String.format(
@@ -124,9 +168,11 @@ public class CoinGeckoService {
             );
 
             String response = restTemplate.getForObject(url, String.class);
+            rateLimitHit = false;
             System.out.println("✅ Datos obtenidos de CoinGecko para " + symbol);
 
-            // Guardar en caché
+            // Eliminar caché antiguo y guardar nuevo
+            cacheRepository.deleteBySymbolAndDaysAndCurrency(symbolUpper, days, currencyUpper);
             CryptoHistoryCache cache = new CryptoHistoryCache(
                 symbolUpper,
                 days,
@@ -137,10 +183,60 @@ public class CoinGeckoService {
             System.out.println("💾 Datos cacheados para " + symbol + " (expira en 24 horas)");
 
             return response;
+
+        } catch (HttpClientErrorException.TooManyRequests e) {
+            rateLimitHit = true;
+            System.err.println("⚠️ 429 Too Many Requests para historial de " + symbol + " - buscando caché expirada...");
+            return handleRateLimitFallback(symbol, days, vsCurrency);
         } catch (Exception e) {
+            if (e.getMessage() != null && e.getMessage().contains("429")) {
+                rateLimitHit = true;
+                System.err.println("⚠️ 429 Too Many Requests para historial de " + symbol + " - buscando caché expirada...");
+                return handleRateLimitFallback(symbol, days, vsCurrency);
+            }
             System.err.println("❌ Error al obtener historial de CoinGecko para " + symbol + ": " + e.getMessage());
+            // Último intento: usar caché expirada
+            String expired = getExpiredCacheData(symbol.toUpperCase(), days, vsCurrency.toUpperCase());
+            if (expired != null) return expired;
             return "{\"error\": \"Error al obtener historial de CoinGecko\"}";
         }
+    }
+
+    /**
+     * Fallback cuando CoinGecko devuelve 429: buscar cualquier caché disponible (incluso expirada)
+     */
+    private String handleRateLimitFallback(String symbol, int days, String vsCurrency) {
+        String symbolUpper = symbol.toUpperCase();
+        String currencyUpper = vsCurrency.toUpperCase();
+
+        String data = getExpiredCacheData(symbolUpper, days, currencyUpper);
+        if (data != null) return data;
+
+        return "{\"error\": \"Rate limit y sin caché disponible\"}";
+    }
+
+    /**
+     * Buscar caché aunque esté expirada (para fallback en caso de 429)
+     * Busca: exacto → 30D → 7D → 1D → 365D
+     */
+    private String getExpiredCacheData(String symbolUpper, int days, String currencyUpper) {
+        // Buscar exacto (expirado)
+        Optional<CryptoHistoryCache> cache = cacheRepository.findFirstBySymbolAndDaysAndCurrency(symbolUpper, days, currencyUpper);
+        if (cache.isPresent()) {
+            System.out.println("📦 Usando caché EXPIRADA de " + symbolUpper + " (" + days + " días)");
+            return cache.get().getHistoryData();
+        }
+        // Buscar otros rangos expirados
+        int[] fallbackOrder = {30, 7, 1, 365};
+        for (int fb : fallbackOrder) {
+            if (fb == days) continue;
+            cache = cacheRepository.findFirstBySymbolAndDaysAndCurrency(symbolUpper, fb, currencyUpper);
+            if (cache.isPresent()) {
+                System.out.println("📦 Usando caché EXPIRADA de " + symbolUpper + " (fallback: " + fb + " días)");
+                return cache.get().getHistoryData();
+            }
+        }
+        return null;
     }
 
     /**

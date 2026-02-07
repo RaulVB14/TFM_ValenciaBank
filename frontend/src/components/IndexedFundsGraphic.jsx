@@ -1,17 +1,18 @@
 import React, { useEffect, useRef } from "react";
 import * as echarts from "echarts";
 
-const IndexedFundsGraphic = ({ symbol, dates, prices }) => {
+const IndexedFundsGraphic = ({ symbol, dates, prices, currency }) => {
     const chartRef = useRef(null);
 
     useEffect(() => {
         if (!chartRef.current || !dates || dates.length === 0) return;
 
         const myChart = echarts.init(chartRef.current);
+        const cur = currency || "USD";
 
         const option = {
             title: {
-                text: `Fluctuación de ${symbol} (EUR)`,
+                text: `Fluctuación de ${symbol} (${cur})`,
                 left: "auto",
                 right: "120px",
                 textStyle: { color: '#ffd54a', fontWeight: 700 }

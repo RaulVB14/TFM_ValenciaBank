@@ -114,4 +114,20 @@ public class PortfolioController {
             ));
         }
     }
+
+    // GET: Obtener historial de valor del portfolio para gráficos
+    @GetMapping("/history/{userId}")
+    public ResponseEntity<Map<String, Object>> getPortfolioHistory(
+            @PathVariable Long userId,
+            @RequestParam(defaultValue = "30") int days) {
+        try {
+            Map<String, Object> history = portfolioService.getPortfolioHistory(userId, days);
+            return ResponseEntity.ok(history);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "success", false,
+                    "error", "Error al obtener historial: " + e.getMessage()
+            ));
+        }
+    }
 }

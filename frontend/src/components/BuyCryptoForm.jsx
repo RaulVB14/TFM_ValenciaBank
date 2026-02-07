@@ -144,7 +144,7 @@ function BuyCryptoForm({ userData, onPurchaseSuccess }) {
                         }}
                     >
                         {Object.entries(cryptoList).map(([key, value]) => (
-                            <option key={key} value={key}>
+                            <option key={key} value={key} style={{ background: '#0f1620', color: '#e6e9ee' }}>
                                 {key} - {value}
                             </option>
                         ))}

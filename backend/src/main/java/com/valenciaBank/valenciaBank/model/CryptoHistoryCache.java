@@ -8,10 +8,13 @@ import java.time.LocalDateTime;
  * Evita hacer llamadas repetidas a CoinGecko y respeta los rate limits
  */
 @Entity
-@Table(name = "CRYPTO_HISTORY_CACHE", indexes = {
-    @Index(name = "idx_symbol_days_currency", columnList = "symbol,days,currency"),
-    @Index(name = "idx_last_fetched", columnList = "last_fetched")
-})
+@Table(name = "CRYPTO_HISTORY_CACHE",
+    uniqueConstraints = @UniqueConstraint(name = "uk_symbol_days_currency", columnNames = {"symbol", "days", "currency"}),
+    indexes = {
+        @Index(name = "idx_symbol_days_currency", columnList = "symbol,days,currency"),
+        @Index(name = "idx_last_fetched", columnList = "last_fetched")
+    }
+)
 public class CryptoHistoryCache {
 
     @Id
