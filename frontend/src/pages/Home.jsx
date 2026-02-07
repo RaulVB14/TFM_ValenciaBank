@@ -1,10 +1,11 @@
-import "./css/Home.css";
+import "../assets/css/Home.css";
 import { useNavigate } from "react-router-dom";
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import CryptoChart from "./components/CryptoGraphic.jsx";
-import IndexedFundsGraphic from "./components/IndexedFundsGraphic.jsx";
-import BuyCryptoForm from "./components/BuyCryptoForm.jsx";
+import CryptoChart from "../components/CryptoGraphic.jsx";
+import IndexedFundsGraphic from "../components/IndexedFundsGraphic.jsx";
+import BuyCryptoForm from "../components/BuyCryptoForm.jsx";
+import AITrendAnalysis from "../components/AITrendAnalysis.jsx";
 import { FaSignOutAlt, FaUser, FaMoneyBillAlt, FaExchangeAlt, FaHistory, FaChartPie, FaChevronRight, FaShoppingCart } from "react-icons/fa";
 
 function Home() {
@@ -527,6 +528,7 @@ function Home() {
                 )}
 
                 <CryptoChart dates={chartData.dates} prices={chartData.prices} selectedCrypto={selectedCrypto} />
+                <AITrendAnalysis symbol={selectedCrypto} type="crypto" prices={chartData.prices} />
                 </div>
 
                 {/* ✅ NUEVA SECCIÓN: FONDOS INDEXADOS Y ETFS */}
@@ -600,6 +602,7 @@ function Home() {
                 )}
 
                 <IndexedFundsGraphic symbol={selectedFund} dates={fundChartData.dates} prices={fundChartData.prices} currency={fundCurrency} />
+                <AITrendAnalysis symbol={selectedFund} type="etf" prices={fundChartData.prices} />
                 </div>
             </div>
 

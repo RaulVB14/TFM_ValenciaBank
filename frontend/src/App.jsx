@@ -1,13 +1,13 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
-import Login from "./InicioSesion/Login";
-import Register from "./InicioSesion/Register";
-import Home from "./Home";
-import Profile from "./funciones/Profile"
-import Summary from "./funciones/Summary"
-import Deposit from "./funciones/Deposit"
-import Transfer from "./funciones/Transfer"
-import Portfolio from "./funciones/Portfolio"
+import Login from "./pages/Login";
+import Register from "./pages/Register";
+import Home from "./pages/Home";
+import Profile from "./pages/Profile"
+import Summary from "./pages/Summary"
+import Deposit from "./pages/Deposit"
+import Transfer from "./pages/Transfer"
+import Portfolio from "./pages/Portfolio"
 
 //DE AQUI SALEN TODAS LAS RUTAS DE LA PAGINA WEB
 export function App() {

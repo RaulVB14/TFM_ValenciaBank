@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { FaUser, FaIdCard, FaEnvelope, FaPhone, FaMapMarkerAlt, FaWallet, FaUniversity, FaCalendarAlt, FaEdit, FaTimes, FaSave, FaKey, FaArrowLeft } from 'react-icons/fa';
-import '../css/Profile.css';
+import '../assets/css/Profile.css';
 
 function Profile() {
   const [userData, setUserData] = useState(null);

@@ -1,4 +1,4 @@
-import "/src/css/Register.css";
+import "../assets/css/Register.css";
 import React, { useState } from "react";
 import { useNavigate } from 'react-router-dom';
 import { FaEye, FaEyeSlash } from "react-icons/fa"; // Importa los iconos

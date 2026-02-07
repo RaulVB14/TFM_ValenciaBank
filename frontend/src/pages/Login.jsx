@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
-import "/src/css/Login.css";
+import "../assets/css/Login.css";
 
 function Login() {
     const [DNI, setDNI] = useState("");
