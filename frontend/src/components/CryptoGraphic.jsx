@@ -12,8 +12,7 @@ const CryptoChart = ({ dates, prices, selectedCrypto }) => {
     const option = {
       title: {
         text: `Fluctuación de ${selectedCrypto} (EUR)`, // 📌 Hacemos el título dinámico
-        left: "auto",
-        right: "120px",
+        left: 'center',
         textStyle: { color: '#ffd54a', fontWeight: 700 }
       },
       tooltip: {

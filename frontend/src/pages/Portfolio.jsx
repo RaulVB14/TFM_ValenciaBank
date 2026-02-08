@@ -7,6 +7,7 @@ import '../assets/css/Portfolio.css';
 
 function Portfolio() {
     const [portfolio, setPortfolio] = useState(null);
+    const [fundPortfolio, setFundPortfolio] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [showChart, setShowChart] = useState(false);
@@ -111,7 +112,7 @@ function Portfolio() {
 
             const userId = userResponse.data.id;
 
-            // Luego obtener el portafolio
+            // Luego obtener el portafolio de cripto
             const response = await axios.get(
                 `http://localhost:8080/portfolio/detailed/${userId}`,
                 {
@@ -126,6 +127,24 @@ function Portfolio() {
                 setError('');
             } else {
                 setError(response.data.error || 'Error al cargar portafolio');
+            }
+
+            // También obtener el portafolio de fondos/ETFs
+            try {
+                const fundsResponse = await axios.get(
+                    `http://localhost:8080/fund/purchase/portfolio/detailed/${userId}`,
+                    {
+                        headers: {
+                            Authorization: `Bearer ${token}`,
+                        }
+                    }
+                );
+
+                if (fundsResponse.data.success) {
+                    setFundPortfolio(fundsResponse.data);
+                }
+            } catch (fundErr) {
+                console.warn('No se pudieron cargar fondos/ETFs:', fundErr);
             }
         } catch (err) {
             console.error('Error:', err);
@@ -148,21 +167,36 @@ function Portfolio() {
         );
     }
 
-    if (!portfolio || !portfolio.positions || portfolio.positions.length === 0) {
+    const hasCrypto = portfolio && portfolio.positions && portfolio.positions.length > 0;
+    const hasFunds = fundPortfolio && fundPortfolio.positions && fundPortfolio.positions.length > 0;
+
+    if (!hasCrypto && !hasFunds) {
         return (
             <div className="portfolio-container">
                 <h2>Mi Portafolio</h2>
                 <div className="empty-portfolio">
-                    <p>📊 No tienes criptomonedas en tu portafolio</p>
-                    <p>Compra tu primera cripto para comenzar</p>
+                    <p>📊 No tienes activos en tu portafolio</p>
+                    <p>Compra criptomonedas o fondos/ETFs para comenzar</p>
                 </div>
             </div>
         );
     }
 
-    const summary = portfolio.summary;
-    const gainLossColor = summary.totalGainLoss >= 0 ? '#00C853' : '#FF3333';
-    const gainLossIcon = summary.totalGainLoss >= 0 ? '📈' : '📉';
+    // Calcular resumen global combinando cripto + fondos
+    const cryptoSummary = hasCrypto ? portfolio.summary : { totalInvested: 0, totalCurrentValue: 0, totalGainLoss: 0 };
+    const fundSummary = hasFunds ? fundPortfolio.summary : { totalInvested: 0, totalCurrentValue: 0, totalGainLoss: 0 };
+
+    const globalSummary = {
+        totalInvested: cryptoSummary.totalInvested + fundSummary.totalInvested,
+        totalCurrentValue: cryptoSummary.totalCurrentValue + fundSummary.totalCurrentValue,
+        totalGainLoss: cryptoSummary.totalGainLoss + fundSummary.totalGainLoss,
+    };
+    globalSummary.totalGainLossPercent = globalSummary.totalInvested > 0
+        ? ((globalSummary.totalGainLoss) / globalSummary.totalInvested) * 100
+        : 0;
+
+    const gainLossColor = globalSummary.totalGainLoss >= 0 ? '#00C853' : '#FF3333';
+    const gainLossIcon = globalSummary.totalGainLoss >= 0 ? '📈' : '📉';
 
     return (
         <div className="portfolio-container">
@@ -174,23 +208,23 @@ function Portfolio() {
                 <button onClick={fetchPortfolio} className="refresh-btn">🔄 Actualizar</button>
             </div>
 
-            {/* RESUMEN */}
+            {/* RESUMEN GLOBAL */}
             <div className="portfolio-summary">
                 <div className="summary-card">
                     <span className="summary-label">Invertido</span>
-                    <span className="summary-value">{summary.totalInvested.toFixed(2)} EUR</span>
+                    <span className="summary-value">{globalSummary.totalInvested.toFixed(2)} EUR</span>
                 </div>
                 <div className="summary-card">
                     <span className="summary-label">Valor Actual</span>
-                    <span className="summary-value highlight">{summary.totalCurrentValue.toFixed(2)} EUR</span>
+                    <span className="summary-value highlight">{globalSummary.totalCurrentValue.toFixed(2)} EUR</span>
                 </div>
                 <div className="summary-card" style={{ borderColor: gainLossColor }}>
                     <span className="summary-label">{gainLossIcon} Ganancia/Pérdida</span>
                     <span className="summary-value" style={{ color: gainLossColor }}>
-                        {summary.totalGainLoss >= 0 ? '+' : ''}{summary.totalGainLoss.toFixed(2)} EUR
+                        {globalSummary.totalGainLoss >= 0 ? '+' : ''}{globalSummary.totalGainLoss.toFixed(2)} EUR
                     </span>
                     <span className="summary-percent" style={{ color: gainLossColor }}>
-                        ({summary.totalGainLossPercent >= 0 ? '+' : ''}{summary.totalGainLossPercent.toFixed(2)}%)
+                        ({globalSummary.totalGainLossPercent >= 0 ? '+' : ''}{globalSummary.totalGainLossPercent.toFixed(2)}%)
                     </span>
                 </div>
             </div>
@@ -229,64 +263,135 @@ function Portfolio() {
                 )}
             </div>
 
-            {/* TABLA DE POSICIONES */}
-            <div className="positions-table">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Cripto</th>
-                            <th>Cantidad</th>
-                            <th>Precio Entrada</th>
-                            <th>Precio Actual</th>
-                            <th>Valor Invertido</th>
-                            <th>Valor Actual</th>
-                            <th>Ganancia/Pérdida</th>
-                            <th>%</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {portfolio.positions.map((position, index) => {
-                            const isGain = position.gainLoss >= 0;
-                            const gainColor = isGain ? '#00C853' : '#FF3333';
-                            const gainIcon = isGain ? '📈' : '📉';
-
-                            return (
-                                <tr key={index} className={isGain ? 'gain' : 'loss'}>
-                                    <td className="symbol">
-                                        <strong>{position.symbol}</strong>
-                                    </td>
-                                    <td className="quantity">
-                                        {position.quantity.toFixed(8).replace(/\.?0+$/, '')}
-                                    </td>
-                                    <td className="price">
-                                        {position.averagePrice.toFixed(2)} EUR
-                                    </td>
-                                    <td className="price highlight">
-                                        {position.currentPrice.toFixed(2)} EUR
-                                    </td>
-                                    <td className="value">
-                                        {position.investmentValue.toFixed(2)} EUR
-                                    </td>
-                                    <td className="value highlight">
-                                        {position.currentValue.toFixed(2)} EUR
-                                    </td>
-                                    <td className="gainloss" style={{ color: gainColor }}>
-                                        {gainIcon} {isGain ? '+' : ''}{position.gainLoss.toFixed(2)} EUR
-                                    </td>
-                                    <td className="percent" style={{ color: gainColor }}>
-                                        {isGain ? '+' : ''}{position.gainLossPercent.toFixed(2)}%
-                                    </td>
+            {/* TABLA DE POSICIONES CRYPTO */}
+            {hasCrypto && (
+                <>
+                    <h3 className="section-title crypto-title">🪙 Criptomonedas</h3>
+                    <div className="positions-table">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Cripto</th>
+                                    <th>Cantidad</th>
+                                    <th>Precio Entrada</th>
+                                    <th>Precio Actual</th>
+                                    <th>Valor Invertido</th>
+                                    <th>Valor Actual</th>
+                                    <th>Ganancia/Pérdida</th>
+                                    <th>%</th>
                                 </tr>
-                            );
-                        })}
-                    </tbody>
-                </table>
-            </div>
+                            </thead>
+                            <tbody>
+                                {portfolio.positions.map((position, index) => {
+                                    const isGain = position.gainLoss >= 0;
+                                    const gainColor = isGain ? '#00C853' : '#FF3333';
+                                    const gainIcon = isGain ? '📈' : '📉';
+
+                                    return (
+                                        <tr key={index} className={isGain ? 'gain' : 'loss'}>
+                                            <td className="symbol">
+                                                <strong>{position.symbol}</strong>
+                                            </td>
+                                            <td className="quantity">
+                                                {position.quantity.toFixed(8).replace(/\.?0+$/, '')}
+                                            </td>
+                                            <td className="price">
+                                                {position.averagePrice.toFixed(2)} EUR
+                                            </td>
+                                            <td className="price highlight">
+                                                {position.currentPrice.toFixed(2)} EUR
+                                            </td>
+                                            <td className="value">
+                                                {position.investmentValue.toFixed(2)} EUR
+                                            </td>
+                                            <td className="value highlight">
+                                                {position.currentValue.toFixed(2)} EUR
+                                            </td>
+                                            <td className="gainloss" style={{ color: gainColor }}>
+                                                {gainIcon} {isGain ? '+' : ''}{position.gainLoss.toFixed(2)} EUR
+                                            </td>
+                                            <td className="percent" style={{ color: gainColor }}>
+                                                {isGain ? '+' : ''}{position.gainLossPercent.toFixed(2)}%
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                </>
+            )}
+
+            {/* TABLA DE POSICIONES FONDOS/ETFs */}
+            {hasFunds && (
+                <>
+                    <h3 className="section-title funds-title">📊 Fondos Indexados & ETFs</h3>
+                    <div className="positions-table funds-table">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Fondo/ETF</th>
+                                    <th>Tipo</th>
+                                    <th>Cantidad</th>
+                                    <th>Precio Entrada</th>
+                                    <th>Precio Actual</th>
+                                    <th>Valor Invertido</th>
+                                    <th>Valor Actual</th>
+                                    <th>Ganancia/Pérdida</th>
+                                    <th>%</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {fundPortfolio.positions.map((position, index) => {
+                                    const isGain = position.gainLoss >= 0;
+                                    const gainColor = isGain ? '#00C853' : '#FF3333';
+                                    const gainIcon = isGain ? '📈' : '📉';
+
+                                    return (
+                                        <tr key={index} className={isGain ? 'gain' : 'loss'}>
+                                            <td className="symbol fund-symbol">
+                                                <strong>{position.symbol}</strong>
+                                                <span className="fund-name">{position.name}</span>
+                                            </td>
+                                            <td className="fund-type">
+                                                <span className={`type-badge ${position.type.toLowerCase()}`}>
+                                                    {position.type}
+                                                </span>
+                                            </td>
+                                            <td className="quantity">
+                                                {position.quantity.toFixed(4).replace(/\.?0+$/, '')}
+                                            </td>
+                                            <td className="price">
+                                                {position.averagePrice.toFixed(2)} {position.currency || 'USD'}
+                                            </td>
+                                            <td className="price highlight">
+                                                {position.currentPrice.toFixed(2)} {position.currency || 'USD'}
+                                            </td>
+                                            <td className="value">
+                                                {position.investmentValue.toFixed(2)} {position.currency || 'USD'}
+                                            </td>
+                                            <td className="value highlight">
+                                                {position.currentValue.toFixed(2)} {position.currency || 'USD'}
+                                            </td>
+                                            <td className="gainloss" style={{ color: gainColor }}>
+                                                {gainIcon} {isGain ? '+' : ''}{position.gainLoss.toFixed(2)} {position.currency || 'USD'}
+                                            </td>
+                                            <td className="percent" style={{ color: gainColor }}>
+                                                {isGain ? '+' : ''}{position.gainLossPercent.toFixed(2)}%
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                </>
+            )}
 
             {/* INFO ADICIONAL */}
             <div className="portfolio-info">
                 <p>💡 Última actualización: {new Date().toLocaleTimeString('es-ES')}</p>
-                <p>📈 Los precios se actualizan en tiempo real desde CoinGecko</p>
+                <p>📈 Precios crypto: CoinGecko | Precios fondos/ETFs: Finnhub</p>
             </div>
         </div>
     );

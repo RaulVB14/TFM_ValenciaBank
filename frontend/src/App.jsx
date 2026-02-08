@@ -8,6 +8,7 @@ import Summary from "./pages/Summary"
 import Deposit from "./pages/Deposit"
 import Transfer from "./pages/Transfer"
 import Portfolio from "./pages/Portfolio"
+import NewsSection from "./components/NewsSection"
 
 //DE AQUI SALEN TODAS LAS RUTAS DE LA PAGINA WEB
 export function App() {
@@ -43,10 +44,16 @@ function MainContent() {
   //Siempre el return sera el html con sus componentes
   return (
     <div className="home-root">
-      <div className="button-container">
-        <button className="btn" onClick={handleLogin}>Login</button>
-        <button className="btn" onClick={handleRegister}>Registro</button>
+      <div className="landing-hero">
+        <h1 className="landing-title">Valencia<span className="landing-highlight">Bank</span></h1>
+        <p className="landing-subtitle">Tu plataforma de banca digital e inversiones crypto</p>
+        <div className="button-container">
+          <button className="btn" onClick={handleLogin}>Login</button>
+          <button className="btn btn-outline" onClick={handleRegister}>Registro</button>
+        </div>
       </div>
+
+      <NewsSection />
     </div>
   );
 }

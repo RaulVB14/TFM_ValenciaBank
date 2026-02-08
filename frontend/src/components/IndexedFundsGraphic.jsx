@@ -13,8 +13,7 @@ const IndexedFundsGraphic = ({ symbol, dates, prices, currency }) => {
         const option = {
             title: {
                 text: `Fluctuación de ${symbol} (${cur})`,
-                left: "auto",
-                right: "120px",
+                left: 'center',
                 textStyle: { color: '#ffd54a', fontWeight: 700 }
             },
             tooltip: {
