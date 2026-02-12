@@ -173,13 +173,24 @@ public class CoinGeckoService {
 
             // Eliminar caché antiguo y guardar nuevo
             cacheRepository.deleteBySymbolAndDaysAndCurrency(symbolUpper, days, currencyUpper);
-            CryptoHistoryCache cache = new CryptoHistoryCache(
-                symbolUpper,
-                days,
-                currencyUpper,
-                response
-            );
-            cacheRepository.save(cache);
+            cacheRepository.flush(); // Forzar ejecución del DELETE antes del INSERT
+            
+            // Verificar si ya existe (por concurrencia) y actualizar en lugar de insertar
+            Optional<CryptoHistoryCache> existing = cacheRepository.findFirstBySymbolAndDaysAndCurrency(symbolUpper, days, currencyUpper);
+            if (existing.isPresent()) {
+                CryptoHistoryCache cache = existing.get();
+                cache.setHistoryData(response);
+                cache.refreshExpiration();
+                cacheRepository.save(cache);
+            } else {
+                CryptoHistoryCache cache = new CryptoHistoryCache(
+                    symbolUpper,
+                    days,
+                    currencyUpper,
+                    response
+                );
+                cacheRepository.save(cache);
+            }
             System.out.println("💾 Datos cacheados para " + symbol + " (expira en 24 horas)");
 
             return response;

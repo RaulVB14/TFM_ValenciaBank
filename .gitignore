@@ -2,6 +2,12 @@
 # PROYECTO: Valencia Bank - Global .gitignore
 # =============================================================================
 
+# IDE Configuration (IntelliJ IDEA, WebStorm, etc.)
+.idea/
+*.iml
+*.iws
+*.ipr
+
 # Node / React Frontend
 frontend/node_modules/
 frontend/dist/
@@ -12,7 +18,6 @@ frontend/*.local
 
 # Java / Spring Backend
 backend/target/
-backend/.idea/
 backend/.classpath
 backend/.project
 backend/.settings/

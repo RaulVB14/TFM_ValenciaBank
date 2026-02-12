@@ -5,6 +5,7 @@ import axios from "axios";
 import CryptoChart from "../components/CryptoGraphic.jsx";
 import IndexedFundsGraphic from "../components/IndexedFundsGraphic.jsx";
 import BuyCryptoForm from "../components/BuyCryptoForm.jsx";
+import BuyFundForm from "../components/BuyFundForm.jsx";
 import AITrendAnalysis from "../components/AITrendAnalysis.jsx";
 import { FaSignOutAlt, FaUser, FaMoneyBillAlt, FaExchangeAlt, FaHistory, FaChartPie, FaChevronRight, FaShoppingCart } from "react-icons/fa";
 
@@ -30,6 +31,7 @@ function Home() {
     const [showBalanceDetail, setShowBalanceDetail] = useState(false);
     const [investedAmount, setInvestedAmount] = useState(0);
     const [showBuyModal, setShowBuyModal] = useState(false);
+    const [showBuyFundModal, setShowBuyFundModal] = useState(false);
 
     const Exit = () => navigate("/");
     const handleProfile = () => navigate("/home/Profile");
@@ -415,14 +417,31 @@ function Home() {
                     <FaShoppingCart />
                     <span>Comprar Crypto</span>
                 </button>
+                <button className="buy-product-btn buy-fund-btn" onClick={() => setShowBuyFundModal(true)}>
+                    <FaChartPie />
+                    <span>Comprar Fondos & ETFs</span>
+                </button>
             </div>
 
-            {/* Modal de compra */}
+            {/* Modal de compra crypto */}
             {showBuyModal && (
                 <div className="buy-modal-overlay" onClick={() => setShowBuyModal(false)}>
                     <div className="buy-modal-content" onClick={(e) => e.stopPropagation()}>
                         <button className="buy-modal-close" onClick={() => setShowBuyModal(false)}>×</button>
                         <BuyCryptoForm userData={userData} onPurchaseSuccess={(data) => {
+                            fetchUserData();
+                            fetchInvestedAmount();
+                        }} />
+                    </div>
+                </div>
+            )}
+
+            {/* Modal de compra fondos/ETFs */}
+            {showBuyFundModal && (
+                <div className="buy-modal-overlay" onClick={() => setShowBuyFundModal(false)}>
+                    <div className="buy-modal-content" onClick={(e) => e.stopPropagation()}>
+                        <button className="buy-modal-close" onClick={() => setShowBuyFundModal(false)}>×</button>
+                        <BuyFundForm userData={userData} onPurchaseSuccess={(data) => {
                             fetchUserData();
                             fetchInvestedAmount();
                         }} />

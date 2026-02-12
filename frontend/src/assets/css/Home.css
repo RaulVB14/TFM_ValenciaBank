@@ -239,6 +239,15 @@ html, body {
     font-size: 16px;
 }
 
+.buy-fund-btn{
+    background: linear-gradient(135deg, #4fc3f7, #0288d1);
+    box-shadow: 0 6px 20px rgba(2,136,209,0.15);
+}
+
+.buy-fund-btn:hover{
+    box-shadow: 0 10px 30px rgba(2,136,209,0.25);
+}
+
 /* Modal de compra */
 .buy-modal-overlay{
     position: fixed;

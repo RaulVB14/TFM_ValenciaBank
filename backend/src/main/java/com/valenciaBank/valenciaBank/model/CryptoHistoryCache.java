@@ -114,4 +114,12 @@ public class CryptoHistoryCache {
     public boolean isValid() {
         return LocalDateTime.now().isBefore(expiresAt);
     }
+
+    /**
+     * Refrescar la expiración del caché (24 horas desde ahora)
+     */
+    public void refreshExpiration() {
+        this.lastFetched = LocalDateTime.now();
+        this.expiresAt = LocalDateTime.now().plusHours(24);
+    }
 }
