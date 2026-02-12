@@ -1,9 +1,5 @@
 # 🏦 ValenciaBank — Plataforma Bancaria Digital con IA
 
-<p align="center">
-  <img src="frontend/images/logo.png" alt="ValenciaBank Logo" width="200" />
-</p>
-
 **ValenciaBank** es una plataforma bancaria moderna desarrollada como Trabajo Final de Máster (TFM). Integra inteligencia artificial para ayudar a los usuarios a gestionar sus finanzas, operar con criptomonedas y fondos indexados/ETFs, y recibir recomendaciones de inversión personalizadas.
 
 ---
