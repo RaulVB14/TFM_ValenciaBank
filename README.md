@@ -40,8 +40,8 @@ El chatbot sugiere acciones (comprar, vender, mantener) para cada activo, adapt�
 - [x] Estructura básica backend y frontend
 - [x] Gestión de usuarios y cuentas
 - [x] Visualización de inversiones
-- [ ] Integración completa del chatbot IA
-- [ ] Recomendaciones automáticas según perfil de riesgo
+- [x] Integración completa del chatbot IA
+- [x] Recomendaciones automáticas según perfil de riesgo
 
 ## Licencia
 Proyecto académico para TFM. Uso educativo.
