@@ -1,37 +1,39 @@
-1. Migrar la bbdd a remoto, tener una URL publica
-2. Ponerle un chatbot a la página para indicar cuando vender, mantener o comprar
-3. Premitir que se puedan comprar y vender criptos y ETFs.
-3. Crear portfolios a los usuarios para que puedan ver sus activos.
+# 📋 Propósitos y Roadmap del TFM
 
---Pasos para migrar a remoto
-1. Ve a https://railway.app
-Haz clic en "Start Project"
-Elige "Deploy from GitHub"
-Selecciona tu repo valenciabank
-1. Railway detectará el proyecto Maven
-Automáticamente compilará y levantará la app
-Importante: Railway automáticamente crea una BD MariaDB cuando lo solicites
-1. Añade la base de datos MariaDB
-En el dashboard de Railway:
+Este documento recoge los objetivos planificados para el Trabajo Final de Máster y su estado de desarrollo.
 
-Haz clic en "+ Add Service"
-Busca "MySQL" (compatible con MariaDB)
-Selecciona la versión 8.0
-Railway generará automáticamente:
+---
 
-5. Configura el backend para usar la BD
-En el panel de tu aplicación en Railway:
+## Objetivos completados
 
-Ve a "Variables"
-Añade las variables del DB (Railway las sugiere automáticamente)
-El application-prod.properties las usará con ${DB_HOST}, ${DB_USER}, etc.
-6. Deploy automático
-Railway automáticamente:
+- [x] Migrar la base de datos a remoto (URL pública)
+- [x] Implementar chatbot IA para recomendaciones de inversión (comprar / vender / mantener)
+- [x] Permitir compra y venta de criptomonedas
+- [x] Permitir compra y venta de ETFs y fondos indexados
+- [x] Crear portfolios para que los usuarios visualicen sus activos
 
-Compila tu Maven
-Levanta la BD MariaDB
-Lanza tu backend en la URL:
-✅ Resumen de cambios:
-✅ application-prod.properties → Usa MariaDB con variables de entorno
-✅ pom.xml → MariaDB driver (sin PostgreSQL)
-✅ Procfile → Rail ya sabe cómo levantar tu app
+---
+
+## Notas de despliegue (Railway)
+
+### Pasos para migrar a remoto
+
+1. Ir a [railway.app](https://railway.app) → "Start Project" → "Deploy from GitHub"
+2. Seleccionar el repositorio `ValenciaBank`
+3. Railway detecta el proyecto Maven y compila automáticamente
+4. Añadir servicio de base de datos: "+ Add Service" → "MySQL" (compatible con MariaDB)
+5. Configurar variables de entorno en el panel de Railway:
+   - Railway sugiere automáticamente las variables de la BD
+   - El archivo `application-prod.properties` las consume con `${DB_HOST}`, `${DB_USER}`, etc.
+6. Railway despliega automáticamente el backend
+
+### Archivos de configuración para producción
+
+| Archivo | Descripción |
+|---------|-------------|
+| `application-prod.properties` | Usa MariaDB con variables de entorno |
+| `pom.xml` | Driver MariaDB (sin PostgreSQL) |
+
+---
+
+*Volver al [README principal](README.md)*

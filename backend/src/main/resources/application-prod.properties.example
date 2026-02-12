@@ -24,7 +24,14 @@ spring.jpa.show-sql=false
 # =============================================================================
 # API & EXTERNAL SERVICES
 # =============================================================================
-api.key=${API_KEY:YOUR_API_KEY_HERE}
+# Alpha Vantage — Datos históricos de criptomonedas y acciones
+api.key=${API_KEY:YOUR_ALPHA_VANTAGE_KEY_HERE}
+
+# Finnhub — Cotizaciones de ETFs y fondos indexados
+finnhub.api.key=${FINNHUB_API_KEY:YOUR_FINNHUB_KEY_HERE}
+
+# Groq AI — Análisis de mercado con Llama 3.3 70B
+groq.api.key=${GROQ_API_KEY:YOUR_GROQ_KEY_HERE}
 
 # =============================================================================
 # SECURITY

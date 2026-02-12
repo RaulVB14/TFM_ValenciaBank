@@ -78,7 +78,7 @@ El proyecto sigue una arquitectura **cliente-servidor**:
 ### 1. Clonar el repositorio
 
 ```bash
-git clone https://github.com/RaulVB14/ValenciaBankWeb.git
+git clone https://github.com/RaulVB14/TFM_ValenciaBank.git
 cd ValenciaBankWeb
 ```
 
@@ -180,6 +180,29 @@ Abre http://localhost:5173 en tu navegador.
 
 ---
 
+## 🧪 Testing
+
+El proyecto incluye una suite completa de **170 tests unitarios** en el backend:
+
+| Categoría | Tests | Cobertura |
+|-----------|-------|-----------|
+| Modelos | 10 | Getters, setters, constructores, relaciones JPA |
+| Utilidades | 4 | JWT, generación de cuentas, TokenResponse |
+| Servicios | 8 | Lógica de negocio con mocks (Mockito) |
+| Controladores | 11 | Endpoints HTTP con MockMvc (standaloneSetup) |
+| **Total** | **170** | **0 fallos, 0 errores** |
+
+### Ejecutar tests
+
+```bash
+cd backend/
+./mvnw test
+```
+
+> Los tests usan una base de datos **H2 en memoria** (perfil `test`) para no depender de MariaDB.
+
+---
+
 ## 📌 Estado del proyecto
 
 - [x] Estructura completa backend y frontend
@@ -193,6 +216,7 @@ Abre http://localhost:5173 en tu navegador.
 - [x] Análisis de tendencias con IA (Groq / Llama 3.3)
 - [x] Noticias de crypto y economía (web scraping)
 - [x] Landing page con noticias en tiempo real
+- [x] Suite de tests unitarios (170 tests)
 
 ---
 

@@ -67,6 +67,11 @@ backend/src/main/java/com/valenciaBank/valenciaBank/
 │   └── TransactionData.java           → DTO de transacción
 ├── repository/                        → Interfaces JPA Repository
 ├── service/
+│   ├── AccountService.java            → Gestión de cuentas bancarias
+│   ├── AccountServiceImplementation.java → Implementación de AccountService
+│   ├── TransactionService.java        → Gestión de transacciones
+│   ├── TransactionServiceImplementation.java → Implementación de TransactionService
+│   ├── UserServiceImplementation.java → Lógica de usuarios (registro, login, BCrypt)
 │   ├── CoinGeckoService.java          → Integración API CoinGecko
 │   ├── FinnhubService.java            → Integración API Finnhub
 │   ├── YahooFinanceService.java       → Integración Yahoo Finance
@@ -80,7 +85,9 @@ backend/src/main/java/com/valenciaBank/valenciaBank/
 └── utils/
     ├── SecurityConfig.java            → Configuración Spring Security + CORS
     ├── Jwt.java                       → Utilidad generación/validación JWT
-    └── JwtFilter.java                 → Filtro JWT para peticiones
+    ├── JwtFilter.java                 → Filtro JWT para peticiones
+    ├── Methods.java                   → Métodos utilitarios (generación de nº cuenta)
+    └── TokenResponse.java             → DTO para respuesta de autenticación JWT
 ```
 
 ---
@@ -113,6 +120,8 @@ jwt.key=TU_CLAVE_SECRETA_JWT
 # Servidor
 server.port=8080
 ```
+
+> **Nota**: Los tres API keys (`api.key`, `finnhub.api.key`, `groq.api.key`) son necesarios para el funcionamiento completo. Sin `finnhub.api.key` no funcionarán las cotizaciones de ETFs, y sin `groq.api.key` no funcionará el análisis IA.
 
 ### 3. Crear la base de datos
 
@@ -199,6 +208,36 @@ El servidor arranca en **http://localhost:8080**.
 - **CORS**: Configurado para `http://localhost:5173` (frontend Vite)
 - **CSRF**: Desactivado (API REST stateless)
 - **Filtro JWT**: `JwtFilter.java` disponible para validación de tokens
+
+---
+
+## 🧪 Testing
+
+El backend incluye una suite completa de **170 tests unitarios**:
+
+```bash
+# Ejecutar todos los tests
+./mvnw test
+
+# En Windows
+mvnw.cmd test
+```
+
+### Configuración de tests
+
+- **Base de datos**: H2 en memoria (perfil `test`)
+- **Framework**: JUnit 5 + Mockito
+- **Controladores**: MockMvc con `standaloneSetup()` (evita carga del contexto completo)
+
+### Estructura de tests
+
+| Categoría | Clases de test | Tests |
+|-----------|---------------|-------|
+| Modelos | 10 | Getters, setters, constructores, relaciones JPA |
+| Utilidades | 4 | JWT, generación de cuentas, SecurityConfig, TokenResponse |
+| Servicios | 8 | Lógica de negocio con mocks |
+| Controladores | 11 | Endpoints HTTP con MockMvc |
+| **Total** | **33** | **170 tests — 0 fallos** |
 
 ---
 
