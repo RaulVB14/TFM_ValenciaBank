@@ -4,6 +4,8 @@ import com.valenciaBank.valenciaBank.model.Crypto;
 import com.valenciaBank.valenciaBank.repository.CryptoRepository;
 import org.json.JSONObject;
 import org.json.JSONArray;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -14,6 +16,8 @@ import java.util.stream.Collectors;
 
 @Service
 public class CryptoService {
+
+    private static final Logger log = LoggerFactory.getLogger(CryptoService.class);
 
     @Value("${api.key}")
     private String apiKey;
@@ -40,14 +44,14 @@ public class CryptoService {
 
             // Detectar si es error de rate limit
             if (data.contains("rate limit") || data.contains("standard API rate limit")) {
-                System.err.println("⚠️ Rate limit alcanzado en Alpha Vantage API");
-                return "{\"error\":\"Debes pagar servicio premium si quieres acceder a esta información.\"}";                
+                log.warn("Rate limit alcanzado en Alpha Vantage API");
+                return "{\"error\":\"Debes pagar servicio premium si quieres acceder a esta información.\"}";
             }
 
             // Validar que la respuesta contenga datos válidos
             JSONObject jsonResponse = new JSONObject(data);
             if (!jsonResponse.has("Time Series (Digital Currency Daily)")) {
-                System.err.println("⚠️ API no retornó datos para " + crytpoName + ". Respuesta: " + data);
+                log.warn("API no retornó datos para {}. Respuesta: {}", crytpoName, data);
                 return "{\"error\":\"De momento no trabajamos con la criptomoneda " + crytpoName + ". Intenta con otra.\"}";
             }
 
@@ -55,7 +59,7 @@ public class CryptoService {
             saveDataInOurBBDD(cachedData, crytpoName, market);
             return data;
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Error llamando API externa para {}: {}", crytpoName, e.getMessage(), e);
             return "{\"error\":\"De momento no trabajamos con la criptomoneda " + crytpoName + ". Intenta con otra.\"}";
         }
     }
@@ -65,10 +69,10 @@ public class CryptoService {
         LocalDate lastDate = cryptoRepository.findLatestDate(cryptoName);
 
         if (lastDate != null && lastDate.equals(LocalDate.now())) {
-            System.out.println("Obtengo datos de DB: " + cryptoName);
+            log.info("Obtengo datos de DB: {}", cryptoName);
             return getCryptoDataFromDB(cryptoName, market);
         } else {
-            System.out.println("Obtengo datos de API EXTERNA: " + cryptoName);
+            log.info("Obtengo datos de API EXTERNA: {}", cryptoName);
             return llamarAPIExterna(cryptoName, market);
         }
     }
@@ -86,20 +90,20 @@ public class CryptoService {
 
             // Detectar si es error de rate limit
             if (data.contains("rate limit") || data.contains("standard API rate limit")) {
-                System.err.println("⚠️ Rate limit alcanzado en Alpha Vantage API");
-                return "{\"error\":\"Debes pagar servicio premium si quieres acceder a esta información.\"}";                
+                log.warn("Rate limit alcanzado en Alpha Vantage API");
+                return "{\"error\":\"Debes pagar servicio premium si quieres acceder a esta información.\"}";
             }
 
             // Validar que la respuesta contenga datos válidos
             JSONObject jsonResponse = new JSONObject(data);
             if (!jsonResponse.has("Time Series (Daily)")) {
-                System.err.println("⚠️ API no retornó datos para " + symbol + ". Respuesta: " + data);
+                log.warn("API no retornó datos para {}. Respuesta: {}", symbol, data);
                 return "{\"error\":\"De momento no trabajamos con el símbolo " + symbol + ". Intenta con otro.\"}";
             }
 
             return data;
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Error llamando Equity API para {}: {}", symbol, e.getMessage(), e);
             return "{\"error\":\"De momento no trabajamos con el símbolo " + symbol + ". Intenta con otro.\"}";
         }
     }
@@ -118,8 +122,8 @@ public class CryptoService {
             
             // Detectar si es error de rate limit
             if (data.contains("rate limit") || data.contains("standard API rate limit")) {
-                System.err.println("⚠️ Rate limit alcanzado en Alpha Vantage API");
-                return "{\"error\":\"Debes pagar servicio premium si quieres acceder a esta información.\"}";                
+                log.warn("Rate limit alcanzado en Alpha Vantage API");
+                return "{\"error\":\"Debes pagar servicio premium si quieres acceder a esta información.\"}";
             }
             
             JSONObject response = new JSONObject(data);
@@ -295,7 +299,7 @@ public class CryptoService {
 
             // Validar que existe la clave antes de intentar acceder
             if (!dataJSON.has("Time Series (Digital Currency Daily)")) {
-                System.err.println("⚠️ No hay 'Time Series' para " + crytpoName);
+                log.warn("No hay 'Time Series' para {}", crytpoName);
                 return;
             }
 
@@ -316,8 +320,7 @@ public class CryptoService {
                 cryptoRepository.save(crypto);
             }
         } catch (Exception e) {
-            System.err.println("❌ Error guardando datos de " + crytpoName + ": " + e.getMessage());
-            e.printStackTrace();
+            log.error("Error guardando datos de {}: {}", crytpoName, e.getMessage(), e);
         }
     }
 
@@ -366,7 +369,7 @@ public class CryptoService {
                 cryptoRepository.save(crypto);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Error guardando datos desde JSON manual: {}", e.getMessage(), e);
         }
     }
 }

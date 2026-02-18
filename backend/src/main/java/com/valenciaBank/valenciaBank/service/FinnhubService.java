@@ -1,5 +1,7 @@
 package com.valenciaBank.valenciaBank.service;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -10,6 +12,8 @@ import java.util.Set;
 
 @Service
 public class FinnhubService {
+
+    private static final Logger log = LoggerFactory.getLogger(FinnhubService.class);
 
     private final RestTemplate restTemplate;
     private static final String FINNHUB_API_URL = "https://finnhub.io/api/v1";
@@ -50,10 +54,10 @@ public class FinnhubService {
             );
 
             String response = restTemplate.getForObject(url, String.class);
-            System.out.println("Finnhub response para " + symbol + ": OK");
+            log.info("Finnhub response para {}: OK", symbol);
             return response;
         } catch (Exception e) {
-            System.err.println("Error al obtener datos de Finnhub para " + symbol + ": " + e.getMessage());
+            log.error("Error al obtener datos de Finnhub para {}: {}", symbol, e.getMessage());
             return "{\"error\": \"Error al obtener datos de Finnhub: " + e.getMessage() + "\"}";
         }
     }
@@ -74,7 +78,7 @@ public class FinnhubService {
             // Validar si el símbolo está soportado en el plan free
             String upperSymbol = symbol.toUpperCase();
             if (!SUPPORTED_SYMBOLS.contains(upperSymbol)) {
-                System.out.println("⚠️ Símbolo no soportado en Finnhub free tier: " + upperSymbol);
+                log.warn("Símbolo no soportado en Finnhub free tier: {}", upperSymbol);
                 return "{\"error\": \"El símbolo '" + upperSymbol + "' no está disponible en el plan free de Finnhub. Símbolos soportados: SPY, VOO, IVV, QQQ, etc.\"}";
             }
 
@@ -92,10 +96,10 @@ public class FinnhubService {
             );
 
             String response = restTemplate.getForObject(url, String.class);
-            System.out.println("✅ Finnhub candles obtenidos para " + upperSymbol);
+            log.info("Finnhub candles obtenidos para {}", upperSymbol);
             return response;
         } catch (Exception e) {
-            System.err.println("❌ Error al obtener velas de Finnhub para " + symbol + ": " + e.getMessage());
+            log.error("Error al obtener velas de Finnhub para {}: {}", symbol, e.getMessage());
             return "{\"error\": \"Error al obtener datos históricos de Finnhub\"}";
         }
     }
@@ -119,10 +123,10 @@ public class FinnhubService {
             );
 
             String response = restTemplate.getForObject(url, String.class);
-            System.out.println("Finnhub search response para " + query + ": OK");
+            log.info("Finnhub search response para {}: OK", query);
             return response;
         } catch (Exception e) {
-            System.err.println("Error al buscar en Finnhub: " + e.getMessage());
+            log.error("Error al buscar en Finnhub: {}", e.getMessage());
             return "{\"error\": \"Error al buscar ETF\"}";
         }
     }

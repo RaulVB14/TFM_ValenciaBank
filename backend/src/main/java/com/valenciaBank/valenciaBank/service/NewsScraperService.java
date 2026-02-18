@@ -5,6 +5,8 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -13,6 +15,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 public class NewsScraperService {
+
+    private static final Logger log = LoggerFactory.getLogger(NewsScraperService.class);
 
     // Cache simple: clave -> lista de noticias + timestamp
     private final ConcurrentHashMap<String, CachedNews> cache = new ConcurrentHashMap<>();
@@ -57,7 +61,7 @@ public class NewsScraperService {
                 } catch (Exception ignored) {}
             }
         } catch (Exception e) {
-            System.err.println("Error scraping CoinTelegraph: " + e.getMessage());
+            log.error("Error scraping CoinTelegraph: {}", e.getMessage());
         }
 
         // Fallback: CoinDesk RSS si CoinTelegraph falla
@@ -88,7 +92,7 @@ public class NewsScraperService {
                     }
                 }
             } catch (Exception e) {
-                System.err.println("Error scraping CoinDesk RSS: " + e.getMessage());
+                log.error("Error scraping CoinDesk RSS: {}", e.getMessage());
             }
         }
 
@@ -134,7 +138,7 @@ public class NewsScraperService {
                 }
             }
         } catch (Exception e) {
-            System.err.println("Error scraping Investing.com RSS: " + e.getMessage());
+            log.error("Error scraping Investing.com RSS: {}", e.getMessage());
         }
 
         // Fallback: CNBC RSS
@@ -164,7 +168,7 @@ public class NewsScraperService {
                     }
                 }
             } catch (Exception e) {
-                System.err.println("Error scraping CNBC RSS: " + e.getMessage());
+                log.error("Error scraping CNBC RSS: {}", e.getMessage());
             }
         }
 

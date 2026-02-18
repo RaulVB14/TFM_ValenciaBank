@@ -2,6 +2,8 @@ package com.valenciaBank.valenciaBank.service;
 
 import com.valenciaBank.valenciaBank.model.CryptoPrice;
 import com.valenciaBank.valenciaBank.repository.CryptoPriceRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
@@ -12,6 +14,8 @@ import java.util.Optional;
 @Service
 public class DataInitializationService {
 
+    private static final Logger log = LoggerFactory.getLogger(DataInitializationService.class);
+
     @Autowired
     private CryptoPriceRepository cryptoPriceRepository;
 
@@ -20,7 +24,7 @@ public class DataInitializationService {
      */
     @EventListener(ApplicationReadyEvent.class)
     public void initializeCryptoPrices() {
-        System.out.println("Inicializando precios de criptomonedas...");
+        log.info("Inicializando precios de criptomonedas...");
 
         String[] symbols = {"BTC", "ETH", "ADA", "SOL", "XRP", "DOT", "DOGE", "LINK", "MATIC", "UNI", 
                            "AVAX", "LTC", "BCH", "ETC", "XLM", "ATOM", "NEAR", "FLOW", "THETA", "VET"};
@@ -37,10 +41,10 @@ public class DataInitializationService {
             if (existing.isEmpty()) {
                 CryptoPrice cryptoPrice = new CryptoPrice(symbol, market, price);
                 cryptoPriceRepository.save(cryptoPrice);
-                System.out.println("✓ Precio inicializado: " + symbol + " = " + price + " " + market);
+                log.info("Precio inicializado: {} = {} {}", symbol, price, market);
             }
         }
 
-        System.out.println("Inicialización de precios completada");
+        log.info("Inicialización de precios completada");
     }
 }

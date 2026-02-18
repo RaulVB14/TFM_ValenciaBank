@@ -9,6 +9,8 @@ import com.valenciaBank.valenciaBank.model.User;
 import com.valenciaBank.valenciaBank.service.AccountService;
 import com.valenciaBank.valenciaBank.service.TransactionService;
 import com.valenciaBank.valenciaBank.service.UserServiceImplementation;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -27,6 +29,7 @@ import java.util.stream.Collectors;
 @CrossOrigin(origins = "http://localhost:5173")
 public class TransactionsController {
 
+    private static final Logger log = LoggerFactory.getLogger(TransactionsController.class);
 
 
     @Autowired
@@ -43,7 +46,7 @@ public class TransactionsController {
     @PostMapping("/add")
     public Transaction addDeposit(@RequestBody String inputWeb) {
         TransactionData transactionData;
-        System.out.println("lo que me pasan es" + inputWeb);
+        log.debug("lo que me pasan es: {}", inputWeb);
 
         try {
             ObjectMapper objectMapper = new ObjectMapper();
@@ -55,16 +58,16 @@ public class TransactionsController {
         Transaction transaction = transactionData.getTransaction();
         User user = userService.getUser(transactionData.getUser());
 
-        System.out.println("Lo que nos envia la web:");
-        System.out.println("Origin Account: " + transaction.getOriginAccount());
-        System.out.println("Destination Account: " + transaction.getDestinationAccount());
-        System.out.println("Amount: " + transaction.getAmount());
-        System.out.println("Date: " + transaction.getDate());
-        System.out.println("dniUser: " + user.getDni());
+        log.info("Lo que nos envia la web:");
+        log.info("Origin Account: {}", transaction.getOriginAccount());
+        log.info("Destination Account: {}", transaction.getDestinationAccount());
+        log.info("Amount: {}", transaction.getAmount());
+        log.info("Date: {}", transaction.getDate());
+        log.info("dniUser: {}", user.getDni());
 
         Account destinationAccount = accountService.findAccountByNumber(transaction.getDestinationAccount());
         Account originAccount = accountService.findAccountByNumber(transaction.getOriginAccount());
-        System.out.println("user que obtenemos: " + user);
+        log.debug("user que obtenemos: {}", user);
 
 
         try{
@@ -82,11 +85,11 @@ public class TransactionsController {
                 }
 
             }else{
-                System.out.println("el usuario que se esta pasando con el dni null por lo tanto no se esta cogiendo bien la info");
+                log.warn("el usuario que se esta pasando con el dni null por lo tanto no se esta cogiendo bien la info");
             }
         }catch (Exception e){
-            System.out.println("hubo un fallo en el servidor");
-            System.out.println(e.getMessage());
+            log.error("hubo un fallo en el servidor");
+            log.error(e.getMessage());
         }
         return transaction;
     }

@@ -3,6 +3,8 @@ package com.valenciaBank.valenciaBank.service;
 import com.valenciaBank.valenciaBank.model.User;
 import com.valenciaBank.valenciaBank.repository.UserRepository;
 import org.checkerframework.checker.units.qual.A;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -11,6 +13,8 @@ import java.util.List;
 
 @Service
 public class UserServiceImplementation {
+
+    private static final Logger log = LoggerFactory.getLogger(UserServiceImplementation.class);
 
     private final UserRepository userRepository;
 
@@ -36,21 +40,21 @@ public class UserServiceImplementation {
     }
 
     public User getUserByDniAndPassword(String dni, String password) {
-        System.out.println("DNI recibido: " + dni);
-        System.out.println("Contraseña recibida: " + password);
+        log.debug("DNI recibido: {}", dni);
+        log.debug("Contraseña recibida: [PROTECTED]");
 
         User user = userRepository.findUserByDni(dni);
 
         if (user != null) {
-            System.out.println("Usuario encontrado en la base de datos: " + user.getDni());
+            log.debug("Usuario encontrado en la base de datos: {}", user.getDni());
             boolean passwordMatches = passwordEncoder.matches(password, user.getPassword());
-            System.out.println("Coincidencia de contraseñas: " + passwordMatches);
+            log.debug("Coincidencia de contraseñas: {}", passwordMatches);
 
             if (passwordMatches) {
                 return user;
             }
         } else {
-            System.out.println("Usuario no encontrado en la base de datos.");
+            log.warn("Usuario no encontrado en la base de datos.");
         }
 
         return null;

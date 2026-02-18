@@ -2,6 +2,8 @@ package com.valenciaBank.valenciaBank.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -15,6 +17,8 @@ import java.util.*;
 
 @Service
 public class YahooFinanceService {
+
+    private static final Logger log = LoggerFactory.getLogger(YahooFinanceService.class);
 
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
@@ -111,13 +115,13 @@ public class YahooFinanceService {
 
             return objectMapper.writeValueAsString(quote);
         } catch (HttpClientErrorException.NotFound e) {
-            System.err.println("⚠️ Yahoo Finance: símbolo no encontrado: " + symbol);
+            log.warn("Yahoo Finance: símbolo no encontrado: {}", symbol);
             return buildNotFound(symbol);
         } catch (HttpClientErrorException e) {
-            System.err.println("❌ Error Yahoo Finance quote para " + symbol + " (" + e.getStatusCode() + ")");
+            log.error("Error Yahoo Finance quote para {} ({})", symbol, e.getStatusCode());
             return buildError("Datos no disponibles para " + symbol);
         } catch (Exception e) {
-            System.err.println("❌ Error Yahoo Finance quote para " + symbol + ": " + e.getMessage());
+            log.error("Error Yahoo Finance quote para {}: {}", symbol, e.getMessage());
             return buildError("Datos no disponibles para " + symbol);
         }
     }
@@ -163,7 +167,7 @@ public class YahooFinanceService {
             // Verificar error de Yahoo
             if (chart.has("error") && !chart.path("error").isNull()) {
                 String errorDesc = chart.path("error").path("description").asText("Error desconocido");
-                System.err.println("❌ Yahoo Finance error: " + errorDesc);
+                log.error("Yahoo Finance error: {}", errorDesc);
                 return buildError("Yahoo Finance: " + errorDesc);
             }
 
@@ -239,17 +243,17 @@ public class YahooFinanceService {
             candles.put("exchange", meta.path("exchangeName").asText(""));
             candles.put("symbol", symbol);
 
-            System.out.println("✅ Yahoo Finance candles para " + symbol + " (" + yahooSymbol + "): " + t.size() + " puntos");
+            log.info("Yahoo Finance candles para {} ({}): {} puntos", symbol, yahooSymbol, t.size());
             return objectMapper.writeValueAsString(candles);
 
         } catch (HttpClientErrorException.NotFound e) {
-            System.err.println("⚠️ Yahoo Finance: símbolo no encontrado para históricos: " + symbol);
+            log.warn("Yahoo Finance: símbolo no encontrado para históricos: {}", symbol);
             return buildNotFound(symbol);
         } catch (HttpClientErrorException e) {
-            System.err.println("❌ Error Yahoo Finance candles para " + symbol + " (" + e.getStatusCode() + ")");
+            log.error("Error Yahoo Finance candles para {} ({})", symbol, e.getStatusCode());
             return buildError("Datos no disponibles para " + symbol);
         } catch (Exception e) {
-            System.err.println("❌ Error Yahoo Finance candles para " + symbol + ": " + e.getMessage());
+            log.error("Error Yahoo Finance candles para {}: {}", symbol, e.getMessage());
             return buildError("Datos no disponibles para " + symbol);
         }
     }
@@ -265,7 +269,7 @@ public class YahooFinanceService {
             String response = callYahoo(url);
             return response;
         } catch (Exception e) {
-            System.err.println("Error al buscar en Yahoo Finance: " + e.getMessage());
+            log.error("Error al buscar en Yahoo Finance: {}", e.getMessage());
             return buildError("Error al buscar: " + e.getMessage());
         }
     }

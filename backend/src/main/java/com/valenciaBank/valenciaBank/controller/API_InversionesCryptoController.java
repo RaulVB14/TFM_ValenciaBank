@@ -1,6 +1,8 @@
 package com.valenciaBank.valenciaBank.controller;
 
 import com.valenciaBank.valenciaBank.service.CryptoService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -8,6 +10,8 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @CrossOrigin(origins = "http://localhost:5173/home") //ESTO ES PARA QUITAR EL FALLO CORS
 public class API_InversionesCryptoController {
+
+    private static final Logger log = LoggerFactory.getLogger(API_InversionesCryptoController.class);
 
     @Autowired
     private  CryptoService cryptoService;
@@ -40,7 +44,7 @@ public class API_InversionesCryptoController {
             cryptoService.saveDataFromManualJson(json);
             return ResponseEntity.ok("Datos de Bitcoin guardados correctamente");
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Error al procesar JSON manual: {}", e.getMessage(), e);
             return ResponseEntity.badRequest().body("Error al procesar el JSON");
         }
     }

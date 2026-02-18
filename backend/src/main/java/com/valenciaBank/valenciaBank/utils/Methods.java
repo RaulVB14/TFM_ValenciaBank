@@ -3,11 +3,15 @@ package com.valenciaBank.valenciaBank.utils;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.valenciaBank.valenciaBank.model.Transaction;
 import com.valenciaBank.valenciaBank.model.TransactionData;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
 
 public class Methods {
+
+    private static final Logger log = LoggerFactory.getLogger(Methods.class);
 
 
     public static String generateAccountNumber() {
@@ -32,15 +36,15 @@ public class Methods {
             String user = transactionData.getUser();
 
             // Mostrar la información extraída
-            System.out.println("Transaction Information:");
-            System.out.println("Origin Account: " + transaction.getOriginAccount());
-            System.out.println("Destination Account: " + transaction.getDestinationAccount());
-            System.out.println("Amount: " + transaction.getAmount());
-            System.out.println("Date: " + transaction.getDate());
-            System.out.println("User: " + user);
+            log.info("Transaction Information:");
+            log.info("Origin Account: {}", transaction.getOriginAccount());
+            log.info("Destination Account: {}", transaction.getDestinationAccount());
+            log.info("Amount: {}", transaction.getAmount());
+            log.info("Date: {}", transaction.getDate());
+            log.info("User: {}", user);
 
         } catch (IOException e) {
-            e.printStackTrace();
+            log.error("Error leyendo fichero JSON: {}", e.getMessage(), e);
         }
     }
 }

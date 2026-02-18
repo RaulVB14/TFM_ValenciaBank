@@ -8,6 +8,8 @@ import com.valenciaBank.valenciaBank.model.User;
 import com.valenciaBank.valenciaBank.repository.AccountRepository;
 import com.valenciaBank.valenciaBank.repository.FundPurchaseRepository;
 import com.valenciaBank.valenciaBank.repository.UserRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,6 +19,8 @@ import java.util.stream.Collectors;
 
 @Service
 public class BuyFundService {
+
+    private static final Logger log = LoggerFactory.getLogger(BuyFundService.class);
 
     @Autowired
     private FinnhubService finnhubService;
@@ -260,8 +264,7 @@ public class BuyFundService {
 
             return response;
         } catch (Exception e) {
-            System.err.println("Error al obtener portafolio detallado de fondos: " + e.getMessage());
-            e.printStackTrace();
+            log.error("Error al obtener portafolio detallado de fondos: {}", e.getMessage(), e);
             return Map.of(
                     "success", false,
                     "error", "Error al obtener portafolio de fondos: " + e.getMessage()
@@ -279,7 +282,7 @@ public class BuyFundService {
             JsonNode root = mapper.readTree(jsonResponse);
 
             if (root.has("error")) {
-                System.err.println("Error de Finnhub: " + root.get("error").asText());
+                log.error("Error de Finnhub: {}", root.get("error").asText());
                 return null;
             }
 
@@ -287,15 +290,15 @@ public class BuyFundService {
             if (root.has("c")) {
                 Double price = root.get("c").asDouble();
                 if (price > 0) {
-                    System.out.println("✅ Precio actual de " + symbol + ": " + price + " USD");
+                    log.info("Precio actual de {}: {} USD", symbol, price);
                     return price;
                 }
             }
 
-            System.err.println("No se encontró precio para " + symbol);
+            log.warn("No se encontró precio para {}", symbol);
             return null;
         } catch (Exception e) {
-            System.err.println("Error al obtener precio de " + symbol + ": " + e.getMessage());
+            log.error("Error al obtener precio de {}: {}", symbol, e.getMessage());
             return null;
         }
     }

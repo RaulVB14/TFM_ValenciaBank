@@ -6,6 +6,8 @@ import com.valenciaBank.valenciaBank.model.User;
 import com.valenciaBank.valenciaBank.repository.CryptoPriceRepository;
 import com.valenciaBank.valenciaBank.repository.CryptoPurchaseRepository;
 import com.valenciaBank.valenciaBank.repository.UserRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -15,6 +17,8 @@ import java.util.stream.Collectors;
 
 @Service
 public class PortfolioService {
+
+    private static final Logger log = LoggerFactory.getLogger(PortfolioService.class);
 
     @Autowired
     private CryptoPurchaseRepository cryptoPurchaseRepository;
@@ -180,8 +184,7 @@ public class PortfolioService {
 
             return response;
         } catch (Exception e) {
-            System.err.println("Error al obtener portafolio detallado: " + e.getMessage());
-            e.printStackTrace();
+            log.error("Error al obtener portafolio detallado: {}", e.getMessage(), e);
             return Map.of(
                     "success", false,
                     "error", "Error al obtener portafolio: " + e.getMessage()
@@ -226,15 +229,15 @@ public class PortfolioService {
                             CryptoPrice cp = new CryptoPrice(symbol.toUpperCase(), market.toUpperCase(), price);
                             cryptoPriceRepository.save(cp);
                         }
-                        System.out.println("💾 Precio actualizado en BD para " + symbol + ": " + price + " " + market);
+                        log.info("Precio actualizado en BD para {}: {} {}", symbol, price, market);
                     } catch (Exception dbErr) {
-                        System.err.println("⚠️ No se pudo guardar precio en BD: " + dbErr.getMessage());
+                        log.warn("No se pudo guardar precio en BD: {}", dbErr.getMessage());
                     }
                     return price;
                 }
             }
         } catch (Exception e) {
-            System.err.println("Error obteniendo precio de CoinGecko para " + symbol + ": " + e.getMessage());
+            log.error("Error obteniendo precio de CoinGecko para {}: {}", symbol, e.getMessage());
         }
         
         // Fallback: buscar en base de datos
@@ -242,11 +245,11 @@ public class PortfolioService {
             Optional<CryptoPrice> dbPrice = cryptoPriceRepository.findBySymbolAndMarket(symbol.toUpperCase(), market.toUpperCase());
             if (dbPrice.isPresent()) {
                 Double price = dbPrice.get().getPrice();
-                System.out.println("📦 Usando precio de BD para " + symbol + ": " + price + " " + market + " (último update: " + dbPrice.get().getLastUpdated() + ")");
+                log.info("Usando precio de BD para {}: {} {} (último update: {})", symbol, price, market, dbPrice.get().getLastUpdated());
                 return price;
             }
         } catch (Exception e) {
-            System.err.println("Error buscando precio en BD para " + symbol + ": " + e.getMessage());
+            log.error("Error buscando precio en BD para {}: {}", symbol, e.getMessage());
         }
         
         return 0.0;
@@ -287,7 +290,7 @@ public class PortfolioService {
                         historicalPrices.put(symbol, prices);
                     }
                 } catch (Exception e) {
-                    System.err.println("Error obteniendo historial para " + symbol + ": " + e.getMessage());
+                    log.error("Error obteniendo historial para {}: {}", symbol, e.getMessage());
                 }
             }
 
@@ -346,8 +349,7 @@ public class PortfolioService {
             return result;
 
         } catch (Exception e) {
-            System.err.println("Error al obtener historial del portfolio: " + e.getMessage());
-            e.printStackTrace();
+            log.error("Error al obtener historial del portfolio: {}", e.getMessage(), e);
             return Map.of("success", false, "error", "Error: " + e.getMessage());
         }
     }
@@ -394,7 +396,7 @@ public class PortfolioService {
             
             return result;
         } catch (Exception e) {
-            System.err.println("Error parseando precios: " + e.getMessage());
+            log.error("Error parseando precios: {}", e.getMessage());
             return null;
         }
     }
